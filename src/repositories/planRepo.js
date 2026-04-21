@@ -1,0 +1,43 @@
+// import  db from "../config/db.js";
+
+// export const savePlan = async (userId, data) => {
+//     const conn = await db(); 
+//      await db.query(
+//     `INSERT INTO plans (user_id, goal, calories, diet_plan, workout_plan)
+//      VALUES (?, ?, ?, ?, ?)`,
+//     [
+//       userId,
+//       data.goal || "",
+//       data.calories,
+//       JSON.stringify(data.diet_plan),
+//       JSON.stringify(data.workout_plan),
+//     ]
+//   );
+// };
+
+// export const getLatestPlan = async (userId) => {
+//   const [rows] = await db.query(
+//     `SELECT * FROM plans WHERE user_id = ? ORDER BY id DESC LIMIT 1`,
+//     [userId]
+//   );
+
+//   return rows[0];
+// };
+
+import db from "../config/db.js";
+
+export const savePlan = async (userId, data) => {
+  const conn = await db(); // ✅ FIX
+
+  await conn.query(
+    `INSERT INTO plans (user_id, goal, calories, diet_plan, workout_plan)
+     VALUES (?, ?, ?, ?, ?)`,
+    [
+      userId,
+      data.goal,
+      data.calories,
+      JSON.stringify(data.diet_plan),
+      JSON.stringify(data.workout_plan),
+    ]
+  );
+};
