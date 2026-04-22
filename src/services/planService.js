@@ -1,18 +1,26 @@
+import generateAIPlan from "./aiService.js";
 import { redis } from "../config/redis.js";
-import { generateAIPlan } from "./aiService.js";
 import { savePlan } from "../repositories/planRepo.js";
 
-export const createPlanService = async (userId, data) => {
-  const cacheKey = `plan:${userId}`;
+const createPlanService = async (userId, data) => {
+  try {
+    const cacheKey = `plan:${userId}:${data.plan_type}`;
 
-  const cached = await redis.get(cacheKey);
-  if (cached) return JSON.parse(cached);
+    const cached = await redis.get(cacheKey);
+    if (cached) return JSON.parse(cached);
 
-  const aiData = await generateAIPlan(data);
+    const aiData = await generateAIPlan(data);
 
-  await savePlan(userId, aiData);
+    await savePlan(userId, aiData);
 
-  await redis.set(cacheKey, JSON.stringify(aiData), "EX", 3600);
+    await redis.set(cacheKey, JSON.stringify(aiData), "EX", 3600);
 
-  return aiData;
+    return aiData;
+
+  } catch (error) {
+    console.error("Plan Service Error:", error.message);
+    throw error;
+  }
 };
+
+export default createPlanService;
