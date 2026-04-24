@@ -8,7 +8,8 @@ const client = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
-// ✅ Helpers
+// ================= HELPERS =================
+
 const calculateBMI = (weight, height) => {
   const h = height / 100;
   return (weight / (h * h)).toFixed(2);
@@ -29,13 +30,13 @@ const calculateSteps = (goal) => {
   return 7000;
 };
 
-// ✅ Ensure weekly structure always correct
+// Ensure weekly structure
 const ensureWeeklyPlan = (plan, isWeekly) => {
   if (!Array.isArray(plan)) return [];
 
   if (!isWeekly) return plan.slice(0, 1);
 
-  const requiredDays = [
+  const days = [
     "Monday","Tuesday","Wednesday","Thursday",
     "Friday","Saturday","Sunday"
   ];
@@ -43,8 +44,10 @@ const ensureWeeklyPlan = (plan, isWeekly) => {
   const map = {};
   plan.forEach((d) => (map[d.day] = d));
 
-  return requiredDays.map((day) => map[day] || { day, meals: {} });
+  return days.map((day) => map[day] || { day, meals: {} });
 };
+
+// ================= MAIN FUNCTION =================
 
 const generateAIPlan = async (data) => {
   try {
@@ -54,80 +57,142 @@ const generateAIPlan = async (data) => {
 
     const isWeekly = data.plan_type === "weekly";
 
-    // ✅ PLAN CONTROL
     const planInstruction = isWeekly
-      ? "Generate FULL 7 days plan from Monday to Sunday."
-      : "Generate ONLY 1 day plan.";
+      ? "Generate FULL 7 days plan (Monday to Sunday)"
+      : "Generate ONLY 1 day plan";
 
-    const daysFormat = isWeekly
-      ? `["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"]`
-      : `["Monday"]`;
+    // ===== WORKOUT TYPE =====
+    let workoutInstruction = "";
 
-    // ✅ DIET RULES
+    if (data.workout_type === "home") {
+      workoutInstruction = `
+Use HOME workouts:
+jumping jacks, squats, lunges, high knees, skipping, yoga, planks.
+`;
+    }
+
+    if (data.workout_type === "gym") {
+      workoutInstruction = `
+Use GYM workouts:
+treadmill, cycling, weight training, deadlifts, bench press.
+`;
+    }
+
+    if (data.workout_type === "mix") {
+      workoutInstruction = `
+Use MIX workouts:
+running, walking, zumba + strength training.
+`;
+    }
+
+    // ===== DIET RULES =====
     const dietRules = parseDietType(data.diet_type);
 
     let dietInstruction = "";
 
     if (dietRules.isVeg && !dietRules.isEgg) {
-      dietInstruction = "Strict vegetarian. No eggs, no meat.";
+      dietInstruction = "Strict vegetarian diet.";
     }
 
     if (dietRules.isVeg && dietRules.isEgg) {
-      dietInstruction =
-        "Vegetarian with eggs allowed. Include egg dishes. No chicken or fish.";
+      dietInstruction = "Vegetarian + eggs allowed.";
     }
 
     if (dietRules.isNonVeg) {
-      dietInstruction =
-        "Non-vegetarian diet. Include chicken, fish, eggs.";
+      dietInstruction = "Non-vegetarian diet allowed.";
     }
 
-    // ✅ CHEAT MEAL LOGIC
+    // ===== INDIAN FOOD CONTROL =====
+    let foodInstruction = "";
+
+    if (data.meal_preference === "north_indian") {
+      foodInstruction = `
+Use North Indian meals:
+
+Breakfast:
+chai + poha / upma / veg vermicelli / paneer sandwich + peanuts
+
+Lunch:
+rajma + rice + raita + salad
+or kadhi + roti + salad
+or dal + roti + sabzi + curd
+
+Dinner:
+roti + paneer sabzi + cucumber salad
+or soya tikki + curd + salad
+or veg oats
+
+Snacks:
+chai + rusk / peanuts / makhana / biscuits
+
+Cheat meal:
+paratha (paneer/aloo/gobi) + butter
+`;
+    }
+
+    if (data.meal_preference === "south_indian") {
+      foodInstruction = `
+Use South Indian meals:
+idli, dosa, appam, upma, sambar, coconut chutney.
+`;
+    }
+
+    // ===== CHEAT =====
     const cheatInstruction = data.include_cheat_meal
       ? `Include cheat meal ONLY on ${data.cheat_day}`
-      : `Do NOT include any cheat meal`;
+      : `No cheat meal`;
+
+    // ================= AI CALL =================
 
     const response = await client.chat.completions.create({
       model: process.env.AI_MODEL || "llama-3.1-8b-instant",
-
       response_format: { type: "json_object" },
 
       messages: [
         {
           role: "system",
-          content: "You are a strict JSON generator AI.",
+          content: "You are a strict JSON generator fitness AI.",
         },
         {
           role: "user",
           content: `
-You are a professional fitness AI.
+${planInstruction}
 
 STRICT RULES:
-- Return ONLY valid JSON
+- Only JSON
 - No explanation
 - No markdown
-- Follow EXACT structure
 
-IMPORTANT:
-${planInstruction}
-Days must be exactly: ${daysFormat}
+USER DATA:
+Weight: ${data.weight}
+Height: ${data.height}
+Goal: ${data.goal}
+Calories Target: ${calories}
+Steps Target: ${steps}
 
 ${dietInstruction}
+${foodInstruction}
+${workoutInstruction}
 ${cheatInstruction}
 
-OUTPUT FORMAT:
+IMPORTANT:
+- Follow Indian meals strictly
+- Maintain calorie distribution
+- Give realistic workout
+
+FORMAT:
 
 {
   "diet_plan": [
     {
       "day": "Monday",
       "meals": {
-        "breakfast": { "food": "", "calories": 0, "protein": 0, "carbs": 0, "fat": 0 },
-        "mid_morning_snack": { "food": "", "calories": 0 },
-        "lunch": { "food": "", "calories": 0, "protein": 0, "carbs": 0, "fat": 0 },
-        "evening_snack": { "food": "", "calories": 0 },
-        "dinner": { "food": "", "calories": 0, "protein": 0, "carbs": 0, "fat": 0 },
-        "cheat_meal": { "food": "", "day": "${data.cheat_day || ""}" }
+        "breakfast": {"food": "", "calories": 0},
+        "mid_morning_snack": {"food": "", "calories": 0},
+        "lunch": {"food": "", "calories": 0},
+        "evening_snack": {"food": "", "calories": 0},
+        "dinner": {"food": "", "calories": 0},
+        "cheat_meal": {"food": "", "day": "${data.cheat_day || ""}"}
       }
     }
   ],
@@ -149,24 +214,12 @@ OUTPUT FORMAT:
     "before_bedtime": ""
   }
 }
-
-USER DATA:
-Weight: ${data.weight}
-Height: ${data.height}
-Goal: ${data.goal}
-Diet Type: ${data.diet_type}
-Food Type: ${data.food_type}
-Meal Preference: ${data.meal_preference}
-Workout Preference: ${data.workout_type}
-Steps Goal: ${steps}
           `,
         },
       ],
     });
 
-    const text = response.choices[0].message.content;
-
-    const parsed = JSON.parse(text);
+    const parsed = JSON.parse(response.choices[0].message.content);
 
     return {
       bmi,
@@ -180,13 +233,31 @@ Steps Goal: ${steps}
   } catch (error) {
     console.error("❌ AI ERROR:", error.message);
 
-    // 🔥 FAILSAFE
+    // ===== SAFE FALLBACK =====
     return {
       bmi: 25,
       calories: 2000,
       steps: 8000,
-      diet_plan: [],
-      workout_plan: [],
+      diet_plan: [
+        {
+          day: "Monday",
+          meals: {
+            breakfast: { food: "chai + poha + peanuts", calories: 350 },
+            lunch: { food: "rajma + rice + raita", calories: 600 },
+            dinner: { food: "roti + paneer + salad", calories: 500 },
+          },
+        },
+      ],
+      workout_plan: [
+        {
+          day: "Monday",
+          type: "home",
+          exercise: "walking + squats + jumping jacks",
+          duration: 40,
+          calories_burned: 300,
+          steps: 8000,
+        },
+      ],
       daily_routine: {},
     };
   }
