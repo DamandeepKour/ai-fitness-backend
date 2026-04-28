@@ -5,7 +5,7 @@ export const dailyLogTable = "daily_logs";
 export const dailyLogColumns = {
   id: "INT AUTO_INCREMENT PRIMARY KEY",
   user_id: "INT NOT NULL",
-  meal_type: "ENUM('breakfast','lunch','dinner','snack') NOT NULL",
+  meal_type: "ENUM('breakfast','mid_morning_snack','lunch','dinner','evening_snack') NOT NULL",
   food_name: "VARCHAR(255) NOT NULL",
   calories: "INT NOT NULL",
   protein: "INT DEFAULT 0",

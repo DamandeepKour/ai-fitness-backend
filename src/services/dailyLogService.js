@@ -32,3 +32,4 @@ export const getDailySummaryService = async (userId) => {
     meals: logs,
   };
 };
+

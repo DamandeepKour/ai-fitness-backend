@@ -1,12 +1,18 @@
 import db from "../config/db.js";
 
 export const saveDailyLog = async (data) => {
-  const conn = await db(); // ✅ FIX
+  const conn = await db();
 
   const query = `
     INSERT INTO daily_logs 
     (user_id, meal_type, food_name, calories, protein, carbs, fat, log_date)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE
+      food_name = VALUES(food_name),
+      calories = VALUES(calories),
+      protein = VALUES(protein),
+      carbs = VALUES(carbs),
+      fat = VALUES(fat)
   `;
 
   const values = [
@@ -20,8 +26,12 @@ export const saveDailyLog = async (data) => {
     data.log_date,
   ];
 
-  const [result] = await conn.query(query, values); // ✅ FIX
-  return result;
+  const [result] = await conn.query(query, values);
+
+  return {
+    id: result.insertId || null,
+    updated: result.affectedRows === 2, // ✅ updated case
+  };
 };
 
 export const getDailyLogs = async (userId) => {
@@ -36,3 +46,4 @@ export const getDailyLogs = async (userId) => {
 
   return rows;
 };
+
