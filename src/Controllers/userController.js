@@ -14,6 +14,29 @@ export const createUser = async (req, res, next) => {
     }
   };
 
+  //update user
+  export const updateUser = async (req, res, next) => {
+    try {
+      const userId = req.user.id; 
+  
+      const result = await updateUserService(userId, req.body);
+  
+      if (result.affectedRows === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found or no changes made",
+        });
+      }
+  
+      res.json({
+        success: true,
+        message: "User updated successfully",
+      });
+    } catch (err) {
+      next(err);
+    }
+  };
+
 //Get All Users
 export const getUsers = async (req, res, next) => {
   try {
