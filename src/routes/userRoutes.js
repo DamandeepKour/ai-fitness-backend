@@ -8,6 +8,6 @@ router.post("/", createUser);
 router.put("/update", authMiddleware, updateUser);
 router.get("/all-user", authMiddleware,getUsers); 
 router.get("/:id", authMiddleware, getUserById);
-router.get("/history", authMiddleware, getUserHistory);
+router.get("/history/me", authMiddleware, getUserHistory);
 
 export default router;

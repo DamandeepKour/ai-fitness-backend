@@ -93,3 +93,15 @@ export const getUserByIdService = async (id) => {
 
   return rows[0];
 };
+
+//get history of user
+export const getUserHistoryService = async (userId) => {
+  const conn = await db();
+
+  const [rows] = await conn.query(
+    `SELECT * FROM user_history WHERE user_id = ? ORDER BY changed_at DESC`,
+    [userId]
+  );
+
+  return rows;
+};
