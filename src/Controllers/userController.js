@@ -62,3 +62,38 @@ export const getUserById = async (req, res, next) => {
     next(err);
   }
 };
+
+//get user history
+export const getUserHistory = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+
+    const conn = await db();
+
+    const [rows] = await conn.query(
+      `SELECT field_name, old_value, new_value, changed_at 
+       FROM user_history 
+       WHERE user_id = ? 
+       ORDER BY changed_at DESC`,
+      [userId]
+    );
+
+    if (!rows.length) {
+      return res.json({
+        success: true,
+        message: "No history found",
+        data: [],
+      });
+    }
+
+    res.json({
+      success: true,
+      count: rows.length,
+      data: rows,
+    });
+
+  } catch (err) {
+    console.error("Get User History Error:", err.message);
+    next(err);
+  }
+};
