@@ -30,22 +30,14 @@ export const updateUserService = async (userId, data) => {
   const conn = await db();
 
   const allowedFields = [
-    "name",
-    "email",
-    "password",
-    "age",
-    "gender",
-    "height",
-    "weight",
-    "goal",
-    "diet_type",
-    "activity_level",
+    "name", "email", "password",
+    "age", "gender", "height",
+    "weight", "goal", "diet_type", "activity_level"
   ];
 
   const fields = [];
   const values = [];
 
-  //
   Object.keys(data).forEach((key) => {
     if (allowedFields.includes(key)) {
       fields.push(`${key} = ?`);
@@ -54,22 +46,23 @@ export const updateUserService = async (userId, data) => {
   });
 
   if (fields.length === 0) {
-    throw new Error("No valid fields provided to update");
+    throw new Error("No valid fields provided");
   }
+
+  // ✅ ADD TIMESTAMP
+  fields.push("last_updated_at = NOW()");
 
   values.push(userId);
 
   const query = `
     UPDATE users 
-    SET ${fields.join(", ")} 
+    SET ${fields.join(", ")}
     WHERE id = ?
   `;
 
   const [result] = await conn.query(query, values);
 
-  return {
-    affectedRows: result.affectedRows,
-  };
+  return result;
 };
 
 //Get All Users

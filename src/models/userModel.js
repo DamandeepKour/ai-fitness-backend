@@ -15,6 +15,7 @@ export const userColumns = {
   diet_type: "VARCHAR(50)",
   activity_level: "VARCHAR(50)",
   created_at: "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+  last_updated_at: "TIMESTAMP NULL DEFAULT NULL"
 };
 
 export const syncUserTable = async () => {
