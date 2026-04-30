@@ -29,6 +29,9 @@ export const createUserService = async (data) => {
 export const updateUserService = async (userId, data) => {
   const conn = await db();
 
+  // ✅ Get old user data
+  const oldUser = await getUserByIdService(userId);
+
   const allowedFields = [
     "name", "email", "password",
     "age", "gender", "height",
@@ -38,20 +41,28 @@ export const updateUserService = async (userId, data) => {
   const fields = [];
   const values = [];
 
-  Object.keys(data).forEach((key) => {
+  for (const key of Object.keys(data)) {
     if (allowedFields.includes(key)) {
       fields.push(`${key} = ?`);
       values.push(data[key]);
+
+      // 🔥 TRACK CHANGE
+      if (oldUser[key] != data[key]) {
+        await saveUserHistory({
+          user_id: userId,
+          field_name: key,
+          old_value: oldUser[key],
+          new_value: data[key],
+        });
+      }
     }
-  });
+  }
 
   if (fields.length === 0) {
     throw new Error("No valid fields provided");
   }
 
-  // ✅ ADD TIMESTAMP
   fields.push("last_updated_at = NOW()");
-
   values.push(userId);
 
   const query = `
@@ -60,9 +71,9 @@ export const updateUserService = async (userId, data) => {
     WHERE id = ?
   `;
 
-  const [result] = await conn.query(query, values);
+  await conn.query(query, values);
 
-  return result;
+  return { success: true };
 };
 
 //Get All Users
