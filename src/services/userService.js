@@ -105,19 +105,17 @@ export const getUserHistoryService = async (userId, filters) => {
   let where = "WHERE user_id = ?";
   const values = [userId];
 
-  // ✅ Filter by field (weight, goal, etc.)
   if (field) {
     where += " AND field_name = ?";
     values.push(field);
   }
 
-  // ✅ Date range filter
   if (from && to) {
     where += " AND DATE(changed_at) BETWEEN ? AND ?";
     values.push(from, to);
   }
 
-  // ✅ Total count
+  // ✅ TOTAL COUNT
   const [countResult] = await conn.query(
     `SELECT COUNT(*) as total FROM user_history ${where}`,
     values
@@ -125,21 +123,33 @@ export const getUserHistoryService = async (userId, filters) => {
 
   const total = countResult[0].total;
 
-  // ✅ Fetch paginated data
+  // ✅ FETCH DATA
   const [rows] = await conn.query(
     `SELECT field_name, old_value, new_value, changed_at
      FROM user_history
      ${where}
-     ORDER BY changed_at DESC
-     LIMIT ? OFFSET ?`,
-    [...values, limit, offset]
+     ORDER BY changed_at ASC`, // 👈 important for graph
+    values
   );
+
+  // 🔥 ADD GRAPH DATA HERE
+  const graphData = rows.map((item) => ({
+    date: item.changed_at,
+    value: Number(item.new_value),
+  }));
+
+  // ✅ PAGINATION (optional slice after graph)
+  const paginated = rows.slice(offset, offset + limit);
 
   return {
     total,
     page,
     limit,
     total_pages: Math.ceil(total / limit),
-    data: rows,
+
+    data: paginated,
+
+    // 🔥 NEW FIELD
+    graph: graphData,
   };
 };
