@@ -68,12 +68,27 @@ export const getUserHistory = async (req, res, next) => {
   try {
     const userId = req.user.id;
 
-    const data = await getUserHistoryService(userId);
+    const {
+      page = 1,
+      limit = 10,
+      field,
+      from,
+      to,
+    } = req.query;
+
+    const result = await getUserHistoryService(userId, {
+      page: Number(page),
+      limit: Number(limit),
+      field,
+      from,
+      to,
+    });
 
     res.json({
       success: true,
-      data,
+      ...result,
     });
+
   } catch (err) {
     next(err);
   }

@@ -95,13 +95,51 @@ export const getUserByIdService = async (id) => {
 };
 
 //get history of user
-export const getUserHistoryService = async (userId) => {
+export const getUserHistoryService = async (userId, filters) => {
   const conn = await db();
 
-  const [rows] = await conn.query(
-    `SELECT * FROM user_history WHERE user_id = ? ORDER BY changed_at DESC`,
-    [userId]
+  const { page, limit, field, from, to } = filters;
+
+  const offset = (page - 1) * limit;
+
+  let where = "WHERE user_id = ?";
+  const values = [userId];
+
+  // ✅ Filter by field (weight, goal, etc.)
+  if (field) {
+    where += " AND field_name = ?";
+    values.push(field);
+  }
+
+  // ✅ Date range filter
+  if (from && to) {
+    where += " AND DATE(changed_at) BETWEEN ? AND ?";
+    values.push(from, to);
+  }
+
+  // ✅ Total count
+  const [countResult] = await conn.query(
+    `SELECT COUNT(*) as total FROM user_history ${where}`,
+    values
   );
 
-  return rows;
+  const total = countResult[0].total;
+
+  // ✅ Fetch paginated data
+  const [rows] = await conn.query(
+    `SELECT field_name, old_value, new_value, changed_at
+     FROM user_history
+     ${where}
+     ORDER BY changed_at DESC
+     LIMIT ? OFFSET ?`,
+    [...values, limit, offset]
+  );
+
+  return {
+    total,
+    page,
+    limit,
+    total_pages: Math.ceil(total / limit),
+    data: rows,
+  };
 };
