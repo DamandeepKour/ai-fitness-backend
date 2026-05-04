@@ -99,7 +99,6 @@ export const getUserHistoryService = async (userId, filters) => {
   const conn = await db();
 
   const { page, limit, field, from, to } = filters;
-
   const offset = (page - 1) * limit;
 
   let where = "WHERE user_id = ?";
@@ -123,22 +122,60 @@ export const getUserHistoryService = async (userId, filters) => {
 
   const total = countResult[0].total;
 
-  // ✅ FETCH DATA
+  // ✅ FETCH SORTED DATA (IMPORTANT FOR TREND)
   const [rows] = await conn.query(
     `SELECT field_name, old_value, new_value, changed_at
      FROM user_history
      ${where}
-     ORDER BY changed_at ASC`, // 👈 important for graph
+     ORDER BY changed_at ASC`,
     values
   );
 
-  // 🔥 ADD GRAPH DATA HERE
-  const graphData = rows.map((item) => ({
-    date: item.changed_at,
-    value: Number(item.new_value),
-  }));
+  // 🔥 1. GRAPH DATA
+  const graphData = rows
+    .filter((item) => !isNaN(item.new_value))
+    .map((item) => ({
+      date: item.changed_at,
+      value: Number(item.new_value),
+    }));
 
-  // ✅ PAGINATION (optional slice after graph)
+  // 🔥 2. GROUP BY DAY
+  const groupedByDay = {};
+  rows.forEach((item) => {
+    const date = item.changed_at.split("T")[0];
+
+    if (!groupedByDay[date]) {
+      groupedByDay[date] = [];
+    }
+
+    groupedByDay[date].push(item);
+  });
+
+  // 🔥 3. TREND (WEIGHT UP/DOWN)
+  let trend = "stable";
+
+  if (graphData.length >= 2) {
+    const first = graphData[0].value;
+    const last = graphData[graphData.length - 1].value;
+
+    if (last < first) trend = "decreasing 📉";
+    else if (last > first) trend = "increasing 📈";
+  }
+
+  // 🔥 4. AVERAGE CHANGE
+  let avgChange = 0;
+
+  if (graphData.length >= 2) {
+    let totalChange = 0;
+
+    for (let i = 1; i < graphData.length; i++) {
+      totalChange += graphData[i].value - graphData[i - 1].value;
+    }
+
+    avgChange = (totalChange / (graphData.length - 1)).toFixed(2);
+  }
+
+  // ✅ PAGINATION
   const paginated = rows.slice(offset, offset + limit);
 
   return {
@@ -149,7 +186,10 @@ export const getUserHistoryService = async (userId, filters) => {
 
     data: paginated,
 
-    // 🔥 NEW FIELD
+    // 🔥 ANALYTICS
     graph: graphData,
+    grouped_by_day: groupedByDay,
+    trend,
+    average_change: Number(avgChange),
   };
 };
