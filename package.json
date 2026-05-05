@@ -21,6 +21,7 @@
   "homepage": "https://github.com/DamandeepKour/ai-fitness-backend#readme",
   "dependencies": {
     "bcryptjs": "^3.0.3",
+    "bullmq": "^5.76.5",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
