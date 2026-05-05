@@ -6,6 +6,7 @@ import dailyLogRoutes from "./dailyLogRoutes.js";
 import weightRoutes  from "./weightRoutes.js";
 import progressRoutes from "./progressRoutes.js";
 import feedbackRoutes from "./feedbackRoutes.js";
+import dashboardRoutes from "./dashboardRoutes.js";
 
 const router = express.Router();
 
@@ -16,6 +17,7 @@ router.use('/daily-log', dailyLogRoutes);
 router.use('/weight', weightRoutes);
 router.use('/progress', progressRoutes);
 router.use('/ai', feedbackRoutes);
+router.use("/dashboard", dashboardRoutes);
 
 
 export default router;
