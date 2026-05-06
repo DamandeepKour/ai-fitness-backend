@@ -21,6 +21,7 @@ export const saveWeight = async (data) => {
   };
 };
 
+//get weekly weight
 export const getWeeklyWeight = async (userId) => {
   const conn = await db();
 
@@ -33,4 +34,20 @@ export const getWeeklyWeight = async (userId) => {
   `, [userId]);
 
   return rows;
+};
+
+//get latest weight
+export const getLatestWeight = async (userId) => {
+  const conn = await db();
+
+  const [rows] = await conn.query(
+    `SELECT weight, log_date
+     FROM weight_logs
+     WHERE user_id = ?
+     ORDER BY log_date DESC
+     LIMIT 1`,
+    [userId]
+  );
+
+  return rows[0] || null;
 };
