@@ -51,3 +51,18 @@ export const getLatestWeight = async (userId) => {
 
   return rows[0] || null;
 };
+
+export const getRecentWeights = async (userId, limit = 6) => {
+  const conn = await db();
+
+  const [rows] = await conn.query(
+    `SELECT weight, log_date
+     FROM weight_logs
+     WHERE user_id = ?
+     ORDER BY log_date DESC
+     LIMIT ?`,
+    [userId, limit]
+  );
+
+  return rows.reverse();
+};

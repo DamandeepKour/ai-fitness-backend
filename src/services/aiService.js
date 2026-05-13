@@ -174,6 +174,7 @@ ${dietInstruction}
 ${foodInstruction}
 ${workoutInstruction}
 ${cheatInstruction}
+${data.ai_prompt ? `User custom meal request: ${data.ai_prompt}` : ""}
 
 IMPORTANT:
 - Follow Indian meals strictly

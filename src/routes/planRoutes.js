@@ -7,6 +7,6 @@ import { planSchema } from "../validators/planValidator.js";
 
 const router = express.Router();
 
-router.post("/generate-plan", validate(planSchema), generatePlan);
+router.post("/generate-plan", authMiddleware, aiLimiter, validate(planSchema), generatePlan);
 
 export default router;

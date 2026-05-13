@@ -47,3 +47,18 @@ export const getDailyLogs = async (userId) => {
   return rows;
 };
 
+export const getDailyLogsForLastDays = async (userId, days = 7) => {
+  const conn = await db();
+
+  const [rows] = await conn.query(
+    `SELECT *
+     FROM daily_logs
+     WHERE user_id = ?
+       AND log_date >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+       AND log_date <= CURDATE()
+     ORDER BY log_date ASC, created_at ASC`,
+    [userId, Math.max(days - 1, 0)]
+  );
+
+  return rows;
+};
