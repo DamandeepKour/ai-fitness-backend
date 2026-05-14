@@ -31,6 +31,7 @@ export const createUser = async (req, res, next) => {
       res.json({
         success: true,
         message: "User updated successfully",
+        data: result.user,
       });
     } catch (err) {
       next(err);
@@ -43,6 +44,21 @@ export const getUsers = async (req, res, next) => {
     const data = await getUsersService();
 
     res.json(data);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Get logged-in user
+export const getCurrentUser = async (req, res, next) => {
+  try {
+    const data = await getUserByIdService(req.user.id);
+
+    if (!data) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    res.json({ success: true, data });
   } catch (err) {
     next(err);
   }

@@ -1,4 +1,11 @@
 import db from "../config/db.js";
+import bcrypt from "bcryptjs";
+import { saveUserHistory } from "../repositories/userHistoryRepo.js";
+
+const safeUserFields = `
+  id, name, email, mobile_number, country_code, age, gender,
+  height, weight, goal, diet_type, activity_level, created_at, last_updated_at
+`;
 
 // ✅ Create User
 export const createUserService = async (data) => {
@@ -6,12 +13,14 @@ export const createUserService = async (data) => {
 
   const [result] = await conn.query(
     `INSERT INTO users 
-    (name, email, password, age, gender, height, weight, goal, diet_type, activity_level)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    (name, email, password, mobile_number, country_code, age, gender, height, weight, goal, diet_type, activity_level)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       data.name,
       data.email,
       data.password,
+      data.mobile_number,
+      data.country_code,
       data.age,
       data.gender,
       data.height,
@@ -33,7 +42,7 @@ export const updateUserService = async (userId, data) => {
   const oldUser = await getUserByIdService(userId);
 
   const allowedFields = [
-    "name", "email", "password",
+    "name", "email", "password", "mobile_number", "country_code",
     "age", "gender", "height",
     "weight", "goal", "diet_type", "activity_level"
   ];
@@ -43,11 +52,14 @@ export const updateUserService = async (userId, data) => {
 
   for (const key of Object.keys(data)) {
     if (allowedFields.includes(key)) {
+      if (key === "password" && !data[key]) continue;
+
       fields.push(`${key} = ?`);
-      values.push(data[key]);
+      const nextValue = key === "password" ? await bcrypt.hash(data[key], 10) : data[key];
+      values.push(nextValue);
 
       // 🔥 TRACK CHANGE
-      if (oldUser[key] != data[key]) {
+      if (key !== "password" && oldUser[key] != data[key]) {
         await saveUserHistory({
           user_id: userId,
           field_name: key,
@@ -73,7 +85,9 @@ export const updateUserService = async (userId, data) => {
 
   await conn.query(query, values);
 
-  return { success: true };
+  const updatedUser = await getUserByIdService(userId);
+
+  return { success: true, user: updatedUser };
 };
 
 //Get All Users
@@ -89,7 +103,7 @@ export const getUsersService = async () => {
 export const getUserByIdService = async (id) => {
   const conn = await db();
 
-  const [rows] = await conn.query(`SELECT * FROM users WHERE id = ?`, [id]);
+  const [rows] = await conn.query(`SELECT ${safeUserFields} FROM users WHERE id = ?`, [id]);
 
   return rows[0];
 };

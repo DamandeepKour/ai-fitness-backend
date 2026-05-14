@@ -47,6 +47,7 @@ export const logout = async (req, res, next) => {
   
       // ⏳ Set expiry (same as JWT expiry or shorter)
       await redis.set(`blacklist:${token}`, "true", "EX", 60 * 60 * 24);
+      res.clearCookie("token", { path: "/" });
   
       res.json({
         success: true,
