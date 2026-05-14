@@ -50,12 +50,9 @@ export const syncDailyLogTable = async () => {
     );
   } catch (e) {}
 
-  // ✅ UNIQUE (prevent duplicate meal)
+  // Allow multiple logs per day (same meal type). Drop legacy unique index if present.
   try {
-    await conn.query(
-      `CREATE UNIQUE INDEX unique_user_meal 
-       ON ${dailyLogTable} (user_id, meal_type, log_date)`
-    );
+    await conn.query(`ALTER TABLE ${dailyLogTable} DROP INDEX unique_user_meal`);
   } catch (e) {}
 
   // ✅ FOREIGN KEY (optional)

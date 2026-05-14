@@ -7,12 +7,6 @@ export const saveDailyLog = async (data) => {
     INSERT INTO daily_logs 
     (user_id, meal_type, food_name, calories, protein, carbs, fat, log_date)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ON DUPLICATE KEY UPDATE
-      food_name = VALUES(food_name),
-      calories = VALUES(calories),
-      protein = VALUES(protein),
-      carbs = VALUES(carbs),
-      fat = VALUES(fat)
   `;
 
   const values = [
@@ -30,34 +24,34 @@ export const saveDailyLog = async (data) => {
 
   return {
     id: result.insertId || null,
-    updated: result.affectedRows === 2, // ✅ updated case
+    inserted: result.affectedRows === 1,
   };
 };
 
-export const getDailyLogs = async (userId) => {
-  const conn = await db(); // ✅ FIX
+export const getDailyLogs = async (userId, logDate) => {
+  const conn = await db();
 
-  const today = new Date().toISOString().split("T")[0];
-
-  const [rows] = await conn.query( // ✅ FIX
-    `SELECT * FROM daily_logs WHERE user_id = ? AND log_date = ?`,
-    [userId, today]
+  const [rows] = await conn.query(
+    `SELECT * FROM daily_logs WHERE user_id = ? AND log_date = ? ORDER BY created_at ASC`,
+    [userId, logDate]
   );
 
   return rows;
 };
 
-export const getDailyLogsForLastDays = async (userId, days = 7) => {
+/** Logs for [endDate - (days-1), endDate] inclusive (by calendar date). */
+export const getDailyLogsForLastDays = async (userId, endDate, days = 7) => {
   const conn = await db();
+  const span = Math.max(days - 1, 0);
 
   const [rows] = await conn.query(
     `SELECT *
      FROM daily_logs
      WHERE user_id = ?
-       AND log_date >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
-       AND log_date <= CURDATE()
+       AND log_date >= DATE_SUB(?, INTERVAL ? DAY)
+       AND log_date <= ?
      ORDER BY log_date ASC, created_at ASC`,
-    [userId, Math.max(days - 1, 0)]
+    [userId, endDate, span, endDate]
   );
 
   return rows;

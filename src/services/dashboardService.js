@@ -4,12 +4,21 @@ import { getDailyLogs, getDailyLogsForLastDays } from "../repositories/dailyLogR
 import { getUserPlan } from "../repositories/planRepo.js";
 import { getLatestWeight, getRecentWeights } from "../repositories/weightRepo.js";
 import { getUserByIdService } from "./userService.js";
+import { isValidYmd, serverCalendarYmd } from "../utils/localDate.js";
 
 const toNumber = (value) => Number(value || 0);
 
-const formatDateKey = (date) => {
-  const d = new Date(date);
-  return d.toISOString().split("T")[0];
+const formatDateKey = (logDate) => {
+  if (logDate == null) return "";
+  if (typeof logDate === "string" && /^\d{4}-\d{2}-\d{2}/.test(logDate)) {
+    return logDate.slice(0, 10);
+  }
+  const d = new Date(logDate);
+  if (Number.isNaN(d.getTime())) return "";
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 };
 
 const parseJson = (value, fallback) => {
@@ -23,18 +32,22 @@ const parseJson = (value, fallback) => {
   }
 };
 
-const buildLast7DaysCalories = (logs) => {
+const buildLast7DaysCalories = (logs, endYmd) => {
   const totalsByDate = new Map();
 
   logs.forEach((log) => {
     const key = formatDateKey(log.log_date);
+    if (!key) return;
     totalsByDate.set(key, (totalsByDate.get(key) || 0) + toNumber(log.calories));
   });
 
+  const [y, m, d] = endYmd.split("-").map(Number);
+  const end = new Date(y, m - 1, d);
+
   return Array.from({ length: 7 }, (_, index) => {
-    const date = new Date();
-    date.setDate(date.getDate() - (6 - index));
-    const key = formatDateKey(date);
+    const date = new Date(end);
+    date.setDate(end.getDate() - (6 - index));
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
     return {
       date: key,
@@ -61,10 +74,11 @@ const flattenDietPlan = (dietPlan) => {
   });
 };
 
-const getDashboardService = async (userId) => {
+const getDashboardService = async (userId, logDateYmd) => {
   try {
-    const logs = await getDailyLogs(userId);
-    const last7DaysLogs = await getDailyLogsForLastDays(userId, 7);
+    const logDate = isValidYmd(logDateYmd) ? logDateYmd : serverCalendarYmd();
+    const logs = await getDailyLogs(userId, logDate);
+    const last7DaysLogs = await getDailyLogsForLastDays(userId, logDate, 7);
     const plan = await getUserPlan(userId);
     const weight = await getLatestWeight(userId);
     const weightHistory = await getRecentWeights(userId, 6);
@@ -122,7 +136,7 @@ const getDashboardService = async (userId) => {
         workout_plan: parseJson(plan?.workout_plan, []),
       },
       generated_meals: flattenDietPlan(dietPlan),
-      graph: buildLast7DaysCalories(last7DaysLogs),
+      graph: buildLast7DaysCalories(last7DaysLogs, logDate),
       meals: logs,
     };
   } catch (err) {

@@ -5,8 +5,8 @@ export const addDailyLogService = async (data) => {
   return await saveDailyLog(data);
 };
 
-export const getDailySummaryService = async (userId) => {
-  const logs = await getDailyLogs(userId);
+export const getDailySummaryService = async (userId, logDate) => {
+  const logs = await getDailyLogs(userId, logDate);
 
   const userPlan = await getUserPlan(userId);
   const targetCalories = userPlan?.calories || 2000;

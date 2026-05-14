@@ -1,10 +1,11 @@
 import { saveWeight, getWeeklyWeight, getLatestWeight } from "../repositories/weightRepo.js";
 import { getDailyLogs } from "../repositories/dailyLogRepo.js";
+import { serverCalendarYmd } from "../utils/localDate.js";
 
 // ✅ ADD / UPDATE WEIGHT
 export const addWeightService = async (data) => {
   try {
-    const today = new Date().toISOString().split("T")[0];
+    const today = serverCalendarYmd();
 
     const latest = await getLatestWeight(data.user_id);
 
@@ -35,7 +36,7 @@ export const addWeightService = async (data) => {
 // ✅ WEEKLY PROGRESS
 export const getWeeklyProgressService = async (userId) => {
   const weightData = await getWeeklyWeight(userId);
-  const logs = await getDailyLogs(userId);
+  const logs = await getDailyLogs(userId, serverCalendarYmd());
 
   let calories = 0;
   logs.forEach(l => calories += l.calories);
