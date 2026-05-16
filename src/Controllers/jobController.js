@@ -1,9 +1,9 @@
 // src/controllers/jobController.js
 
-import { aiQueue } from "../jobs/queue.js";
+import { getAiQueue } from "../jobs/queue.js";
 
 export const getJobStatus = async (req, res) => {
-  const job = await aiQueue.getJob(req.params.id);
+  const job = await getAiQueue().getJob(req.params.id);
 
   if (!job) {
     return res.status(404).json({ message: "Job not found" });

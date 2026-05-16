@@ -14,37 +14,38 @@ import cors from "cors";
 import initDb from "./initDb.js";
 import routes from "./src/routes/index.js";
 import errorHandler from "./src/middleware/errorHandler.js";
+import { connectRedis } from "./src/config/redis.js";
 
 const app = express();
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Health check
 app.get("/", (req, res) => {
   res.send("API is running 🚀");
 });
 
-// Routes
-app.use("/api", routes);
+app.get("/health", async (req, res) => {
+  res.json({ ok: true, service: "ai-fitness-backend" });
+});
 
-// Error handler
+app.use("/api", routes);
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
+// Render sets PORT automatically — do not hardcode 2002 unless you set it in Render env.
+const PORT = Number(process.env.PORT) || 5000;
 
 const startServer = async () => {
   try {
     console.log("⏳ Starting server...");
+    console.log("NODE_ENV:", process.env.NODE_ENV || "development");
 
     await initDb();
-    console.log("✅ DB initialized");
+    await connectRedis();
 
-    app.listen(PORT, () => {
+    app.listen(PORT, "0.0.0.0", () => {
       console.log(`🚀 Server running on port ${PORT}`);
     });
-
   } catch (error) {
     console.error("❌ Failed to start server:", error);
     process.exit(1);

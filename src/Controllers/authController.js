@@ -1,5 +1,5 @@
 import { signupService, loginService } from "../services/authService.js";
-import { redis }  from "../config/redis.js";
+import { getRedis } from "../config/redis.js";
 
 // 🧑‍💻 SIGNUP
 export const signup = async (req, res, next) => {
@@ -46,7 +46,10 @@ export const logout = async (req, res, next) => {
       const token = header.split(" ")[1];
   
       // ⏳ Set expiry (same as JWT expiry or shorter)
-      await redis.set(`blacklist:${token}`, "true", "EX", 60 * 60 * 24);
+      const redis = getRedis();
+      if (redis) {
+        await redis.set(`blacklist:${token}`, "true", "EX", 60 * 60 * 24);
+      }
       res.clearCookie("token", { path: "/" });
   
       res.json({

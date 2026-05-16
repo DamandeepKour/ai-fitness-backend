@@ -1,9 +1,9 @@
 // src/controllers/aiController.js
 
-import { aiQueue } from "../jobs/queue.js";
+import { getAiQueue } from "../jobs/queue.js";
 
 export const generatePlanAsync = async (req, res) => {
-  const job = await aiQueue.add("generate", {
+  const job = await getAiQueue().add("generate", {
     data: req.body,
   });
 
