@@ -39,6 +39,8 @@ const startServer = async () => {
   try {
     console.log("⏳ Starting server...");
     console.log("NODE_ENV:", process.env.NODE_ENV || "development");
+    console.log("DB_HOST set:", Boolean(process.env.DB_HOST?.trim()));
+    console.log("REDIS_URL set:", Boolean(process.env.REDIS_URL?.trim()));
 
     await initDb();
     await connectRedis();
