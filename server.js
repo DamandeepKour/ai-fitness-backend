@@ -1,6 +1,9 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+import { hydrateDbEnvFromProvider } from "./src/config/db.js";
+hydrateDbEnvFromProvider();
+
 process.on("uncaughtException", (err) => {
   console.error("❌ Uncaught Exception:", err);
 });
@@ -39,7 +42,9 @@ const startServer = async () => {
   try {
     console.log("⏳ Starting server...");
     console.log("NODE_ENV:", process.env.NODE_ENV || "development");
-    console.log("DB_HOST set:", Boolean(process.env.DB_HOST?.trim()));
+    console.log("DB_HOST:", process.env.DB_HOST?.trim() || "(not set)");
+    console.log("MYSQL_URL set:", Boolean(process.env.MYSQL_URL?.trim()));
+    console.log("MYSQL_PUBLIC_URL set:", Boolean(process.env.MYSQL_PUBLIC_URL?.trim()));
     console.log("REDIS_URL set:", Boolean(process.env.REDIS_URL?.trim()));
 
     await initDb();

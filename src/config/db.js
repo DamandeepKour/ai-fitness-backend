@@ -6,6 +6,65 @@ function isUnset(value) {
   return value === undefined || value === null || String(value).trim() === "";
 }
 
+function isRailwayInternalHost(host) {
+  const h = String(host || "").trim().toLowerCase();
+  return h.endsWith(".railway.internal") || h === "mysql.railway.internal";
+}
+
+function parseMysqlUrl(url) {
+  const parsed = new URL(url.trim());
+  return {
+    host: parsed.hostname,
+    port: parsed.port || "3306",
+    user: parsed.username ? decodeURIComponent(parsed.username) : "",
+    password: parsed.password ? decodeURIComponent(parsed.password) : "",
+    database: parsed.pathname?.replace(/^\//, "")
+      ? decodeURIComponent(parsed.pathname.replace(/^\//, ""))
+      : "",
+  };
+}
+
+/** Map Railway / single-URL MySQL env into DB_* before validation. */
+export function hydrateDbEnvFromProvider() {
+  const isProduction = process.env.NODE_ENV === "production";
+  // Render is outside Railway — internal hostnames never work there.
+  const url =
+    (isProduction ? process.env.MYSQL_PUBLIC_URL : null) ||
+    process.env.MYSQL_PUBLIC_URL ||
+    process.env.MYSQL_URL;
+
+  if (url?.trim().toLowerCase().startsWith("mysql")) {
+    try {
+      const { host, port, user, password, database } = parseMysqlUrl(url);
+      process.env.DB_HOST = host;
+      process.env.DB_PORT = port;
+      if (user) process.env.DB_USER = user;
+      if (password) process.env.DB_PASSWORD = password;
+      if (database) process.env.DB_NAME = database;
+    } catch {
+      /* fall through to individual vars */
+    }
+  }
+
+  // Railway MySQL plugin (MYSQLHOST, MYSQLPORT, …)
+  const railwayMap = [
+    ["MYSQLHOST", "DB_HOST"],
+    ["MYSQLPORT", "DB_PORT"],
+    ["MYSQLUSER", "DB_USER"],
+    ["MYSQLPASSWORD", "DB_PASSWORD"],
+    ["MYSQLDATABASE", "DB_NAME"],
+  ];
+  for (const [from, to] of railwayMap) {
+    if (isUnset(process.env[to]) && !isUnset(process.env[from])) {
+      process.env[to] = String(process.env[from]).trim();
+    }
+  }
+
+  if (process.env.DB_SSL === undefined && process.env.MYSQL_SSL === "true") {
+    process.env.DB_SSL = "true";
+  }
+}
+
 function isLocalOrPrivateHost(host) {
   if (!host) return true;
   const h = String(host).trim().toLowerCase();
@@ -20,24 +79,31 @@ function isLocalOrPrivateHost(host) {
 function requireDbEnv() {
   const missing = ["DB_HOST", "DB_USER", "DB_NAME"].filter((k) => isUnset(process.env[k]));
   if (missing.length) {
+    const hasUrl = Boolean(
+      process.env.MYSQL_PUBLIC_URL?.trim() || process.env.MYSQL_URL?.trim(),
+    );
     throw new Error(
-      `Missing database environment variables: ${missing.join(", ")}.\n` +
-        "On Render: Dashboard → your Web Service → Environment → add DB_HOST, DB_USER, DB_PASSWORD, DB_NAME.\n" +
-        "A .env file in the repo is NOT used on Render (logs show 'injected env (0)').",
+      `Missing database environment variables: ${missing.join(", ")}.` +
+        (hasUrl
+          ? " MYSQL_URL was set but could not be parsed — redeploy latest code from git."
+          : " Set MYSQL_PUBLIC_URL from Railway (not the .railway.internal URL).") +
+        " A .env file in the repo is not used on Render.",
     );
   }
 
   const host = process.env.DB_HOST.trim();
   const isProduction = process.env.NODE_ENV === "production";
 
+  if (isProduction && isRailwayInternalHost(host)) {
+    throw new Error(
+      `DB_HOST is "${host}" — that is Railway's private network host. ` +
+        "On Render use Railway → MySQL → Connect → MYSQL_PUBLIC_URL (hostname like *.proxy.rlwy.net), not MYSQL_URL with .railway.internal.",
+    );
+  }
+
   if (isProduction && isLocalOrPrivateHost(host)) {
     throw new Error(
-      `DB_HOST is "${host}" — Render cannot reach localhost or private IPs like 192.168.x.x.\n` +
-        "Your MySQL at 192.168.1.152 only works on your home network.\n" +
-        "Options:\n" +
-        "  1) Use a cloud MySQL (PlanetScale, Railway, Aiven, Render MySQL) and set its public hostname as DB_HOST\n" +
-        "  2) Run the backend on the same LAN as the DB (not on Render)\n" +
-        "  3) Use a VPN/tunnel (advanced, not recommended for production)",
+      `DB_HOST is "${host}" — use Railway MYSQL_PUBLIC_URL or a public DB_HOST on Render.`,
     );
   }
 }
@@ -66,6 +132,7 @@ function buildPoolConfig() {
 
 const db = async () => {
   if (!pool) {
+    hydrateDbEnvFromProvider();
     requireDbEnv();
 
     const config = buildPoolConfig();
