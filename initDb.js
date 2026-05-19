@@ -5,6 +5,7 @@ import { syncProgressTable } from "./src/models/progressModel.js";
 import { syncUserHistoryTable } from "./src/models/userHistoryModel.js";
 import { syncUserTable } from "./src/models/userModel.js";
 import { syncWeightTable } from "./src/models/weightModel.js";
+import { syncContactTable } from "./src/models/contactModel.js";
 
 const syncSteps = [
   { name: "users", fn: syncUserTable },
@@ -13,6 +14,7 @@ const syncSteps = [
   { name: "daily_logs", fn: syncDailyLogTable },
   { name: "weights", fn: syncWeightTable },
   { name: "user_history", fn: syncUserHistoryTable },
+  { name: "contact_messages", fn: syncContactTable },
 ];
 
 export default async function initDb() {
