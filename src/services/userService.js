@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { saveUserHistory } from "../repositories/userHistoryRepo.js";
 
 const safeUserFields = `
-  id, name, email, mobile_number, country_code, age, gender,
+  id, name, email, user_type, mobile_number, country_code, age, gender,
   height, weight, goal, diet_type, activity_level, created_at, last_updated_at
 `;
 

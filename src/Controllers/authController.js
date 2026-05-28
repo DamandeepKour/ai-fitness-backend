@@ -4,7 +4,7 @@ import { getRedis } from "../config/redis.js";
 // 🧑‍💻 SIGNUP
 export const signup = async (req, res, next) => {
   try {
-    const data = await signupService(req.body);
+    const data = await signupService(req.body, { userType: "user" });
 
     res.json({
       success: true,
@@ -24,6 +24,32 @@ export const login = async (req, res, next) => {
     res.json({
       success: true,
       message: "Login successful",
+      data,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const signupByType = (userType) => async (req, res, next) => {
+  try {
+    const data = await signupService(req.body, { userType });
+    res.json({
+      success: true,
+      message: `${userType} registered successfully`,
+      data,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const loginByType = (userType) => async (req, res, next) => {
+  try {
+    const data = await loginService(req.body, { requiredUserType: userType });
+    res.json({
+      success: true,
+      message: `${userType} login successful`,
       data,
     });
   } catch (err) {

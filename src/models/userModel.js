@@ -7,6 +7,7 @@ export const userColumns = {
   name: "VARCHAR(100)",
   email: "VARCHAR(150) UNIQUE",
   password: "VARCHAR(255)",
+  user_type: "VARCHAR(20) DEFAULT 'user'",
   mobile_number: "VARCHAR(30)",
   country_code: "VARCHAR(10)",
   age: "INT",
