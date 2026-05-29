@@ -10,6 +10,7 @@ export const userColumns = {
   user_type: "VARCHAR(20) DEFAULT 'user'",
   mobile_number: "VARCHAR(30)",
   country_code: "VARCHAR(10)",
+  language: "VARCHAR(50)",
   age: "INT",
   gender: "VARCHAR(10)",
   height: "FLOAT",
