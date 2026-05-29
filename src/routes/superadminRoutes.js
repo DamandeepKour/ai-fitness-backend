@@ -4,6 +4,7 @@ import db from "../config/db.js";
 import {
   getCompleteProfileUsers,
   getSuperadminAnalytics,
+  getSuperadminUserById,
   getSuperadminUsers,
 } from "../Controllers/superadminController.js";
 
@@ -38,5 +39,6 @@ router.get("/analytics", getSuperadminAnalytics);
 router.get("/users", getSuperadminUsers);
 router.get("/users/logins", getSuperadminUsers);
 router.get("/users/complete-profiles", getCompleteProfileUsers);
+router.get("/users/:id", getSuperadminUserById);
 
 export default router;

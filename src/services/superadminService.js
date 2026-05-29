@@ -87,6 +87,31 @@ export async function getSuperadminUsersService() {
   }));
 }
 
+export async function getSuperadminUserByIdService(userId) {
+  const conn = await db();
+  const [rows] = await conn.query(
+    `SELECT
+      id, name, email, user_type, mobile_number, country_code, language, age, gender,
+      height, weight, goal, diet_type, activity_level, created_at, last_updated_at
+     FROM users
+     WHERE id = ?
+     LIMIT 1`,
+    [userId],
+  );
+
+  if (!rows[0]) return null;
+
+  const row = rows[0];
+  return {
+    ...row,
+    last_login: row.last_updated_at || row.created_at,
+    is_active: Boolean(
+      row.last_updated_at &&
+        new Date(row.last_updated_at).getTime() >= Date.now() - 30 * 24 * 60 * 60 * 1000,
+    ),
+  };
+}
+
 export async function getCompleteProfileUsersService() {
   const conn = await db();
   const [rows] = await conn.query(
