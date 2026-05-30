@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { saveUserHistory } from "../repositories/userHistoryRepo.js";
 
 const safeUserFields = `
-  id, name, email, user_type, mobile_number, country_code, age, gender,
+  id, name, email, user_type, mobile_number, country_code, language, age, gender,
   height, weight, goal, diet_type, activity_level, created_at, last_updated_at
 `;
 
@@ -42,7 +42,7 @@ export const updateUserService = async (userId, data) => {
   const oldUser = await getUserByIdService(userId);
 
   const allowedFields = [
-    "name", "email", "password", "mobile_number", "country_code",
+    "name", "email", "password", "mobile_number", "country_code", "language",
     "age", "gender", "height",
     "weight", "goal", "diet_type", "activity_level"
   ];

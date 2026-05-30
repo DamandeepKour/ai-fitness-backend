@@ -4,6 +4,7 @@ import {
   getSuperadminUserByIdService,
   getSuperadminUsersService,
 } from "../services/superadminService.js";
+import { updateUserService } from "../services/userService.js";
 
 export async function getSuperadminAnalytics(req, res, next) {
   try {
@@ -18,6 +19,31 @@ export async function getSuperadminUsers(req, res, next) {
   try {
     const users = await getSuperadminUsersService();
     res.json({ success: true, data: { users } });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getSuperadminMe(req, res, next) {
+  try {
+    const user = await getSuperadminUserByIdService(req.user.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    res.json({ success: true, data: user });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateSuperadminProfile(req, res, next) {
+  try {
+    const result = await updateUserService(req.user.id, req.body);
+    res.json({
+      success: true,
+      message: "Profile updated successfully",
+      data: result.user,
+    });
   } catch (err) {
     next(err);
   }

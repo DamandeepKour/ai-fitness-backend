@@ -4,8 +4,10 @@ import db from "../config/db.js";
 import {
   getCompleteProfileUsers,
   getSuperadminAnalytics,
+  getSuperadminMe,
   getSuperadminUserById,
   getSuperadminUsers,
+  updateSuperadminProfile,
 } from "../Controllers/superadminController.js";
 
 const router = express.Router();
@@ -36,6 +38,8 @@ async function requireSuperadmin(req, res, next) {
 router.use(authMiddleware, requireSuperadmin);
 
 router.get("/analytics", getSuperadminAnalytics);
+router.get("/me", getSuperadminMe);
+router.put("/profile", updateSuperadminProfile);
 router.get("/users", getSuperadminUsers);
 router.get("/users/logins", getSuperadminUsers);
 router.get("/users/complete-profiles", getCompleteProfileUsers);
