@@ -1,4 +1,6 @@
 import {
+  getAIAnalyticsService,
+  getAIGeneratedMealsService,
   getCompleteProfileUsersService,
   getSuperadminAnalyticsService,
   getSuperadminUserByIdService,
@@ -65,6 +67,25 @@ export async function getCompleteProfileUsers(req, res, next) {
   try {
     const users = await getCompleteProfileUsersService();
     res.json({ success: true, data: { users } });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getAIAnalytics(req, res, next) {
+  try {
+    const data = await getAIAnalyticsService();
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getAIGeneratedMeals(req, res, next) {
+  try {
+    const limit = req.query.limit || 50;
+    const meals = await getAIGeneratedMealsService(limit);
+    res.json({ success: true, data: { meals } });
   } catch (err) {
     next(err);
   }

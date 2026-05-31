@@ -2,6 +2,8 @@ import express from "express";
 import authMiddleware from "../middleware/authMiddleware.js";
 import db from "../config/db.js";
 import {
+  getAIAnalytics,
+  getAIGeneratedMeals,
   getCompleteProfileUsers,
   getSuperadminAnalytics,
   getSuperadminMe,
@@ -38,6 +40,8 @@ async function requireSuperadmin(req, res, next) {
 router.use(authMiddleware, requireSuperadmin);
 
 router.get("/analytics", getSuperadminAnalytics);
+router.get("/ai/analytics", getAIAnalytics);
+router.get("/ai/generated-meals", getAIGeneratedMeals);
 router.get("/me", getSuperadminMe);
 router.put("/profile", updateSuperadminProfile);
 router.get("/users", getSuperadminUsers);
