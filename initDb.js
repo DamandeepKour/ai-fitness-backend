@@ -6,6 +6,7 @@ import { syncUserHistoryTable } from "./src/models/userHistoryModel.js";
 import { syncUserTable } from "./src/models/userModel.js";
 import { syncWeightTable } from "./src/models/weightModel.js";
 import { syncContactTable } from "./src/models/contactModel.js";
+import { syncBusinessTables, seedBusinessDemoData } from "./src/models/businessModel.js";
 
 const syncSteps = [
   { name: "users", fn: syncUserTable },
@@ -15,6 +16,7 @@ const syncSteps = [
   { name: "weights", fn: syncWeightTable },
   { name: "user_history", fn: syncUserHistoryTable },
   { name: "contact_messages", fn: syncContactTable },
+  { name: "business", fn: syncBusinessTables },
 ];
 
 export default async function initDb() {
@@ -31,5 +33,6 @@ export default async function initDb() {
     }
   }
 
+  await seedBusinessDemoData();
   console.log("✅ DB Synced");
 }

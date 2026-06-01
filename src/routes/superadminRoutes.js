@@ -4,7 +4,9 @@ import db from "../config/db.js";
 import {
   getAIAnalytics,
   getAIGeneratedMeals,
+  getBusinessAnalytics,
   getCompleteProfileUsers,
+  getHealthAnalytics,
   getSuperadminAnalytics,
   getSuperadminMe,
   getSuperadminUserById,
@@ -42,6 +44,8 @@ router.use(authMiddleware, requireSuperadmin);
 router.get("/analytics", getSuperadminAnalytics);
 router.get("/ai/analytics", getAIAnalytics);
 router.get("/ai/generated-meals", getAIGeneratedMeals);
+router.get("/business/analytics", getBusinessAnalytics);
+router.get("/health/analytics", getHealthAnalytics);
 router.get("/me", getSuperadminMe);
 router.put("/profile", updateSuperadminProfile);
 router.get("/users", getSuperadminUsers);
