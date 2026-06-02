@@ -1,5 +1,6 @@
 import { getBusinessAnalyticsService } from "../services/businessService.js";
 import { getHealthAnalyticsService } from "../services/healthService.js";
+import { getNutritionAnalyticsService } from "../services/nutritionService.js";
 import {
   getAIAnalyticsService,
   getAIGeneratedMealsService,
@@ -105,6 +106,15 @@ export async function getBusinessAnalytics(req, res, next) {
 export async function getHealthAnalytics(req, res, next) {
   try {
     const data = await getHealthAnalyticsService();
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getNutritionAnalytics(req, res, next) {
+  try {
+    const data = await getNutritionAnalyticsService();
     res.json({ success: true, data });
   } catch (err) {
     next(err);

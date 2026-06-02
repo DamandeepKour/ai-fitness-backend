@@ -7,6 +7,7 @@ import {
   getBusinessAnalytics,
   getCompleteProfileUsers,
   getHealthAnalytics,
+  getNutritionAnalytics,
   getSuperadminAnalytics,
   getSuperadminMe,
   getSuperadminUserById,
@@ -46,6 +47,7 @@ router.get("/ai/analytics", getAIAnalytics);
 router.get("/ai/generated-meals", getAIGeneratedMeals);
 router.get("/business/analytics", getBusinessAnalytics);
 router.get("/health/analytics", getHealthAnalytics);
+router.get("/nutrition/analytics", getNutritionAnalytics);
 router.get("/me", getSuperadminMe);
 router.put("/profile", updateSuperadminProfile);
 router.get("/users", getSuperadminUsers);
