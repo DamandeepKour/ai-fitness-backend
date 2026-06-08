@@ -3,16 +3,22 @@ import authMiddleware from "../middleware/authMiddleware.js";
 import db from "../config/db.js";
 import {
   getAIAnalytics,
+  getAIQualityAnalytics,
   getAIGeneratedMeals,
   getBusinessAnalytics,
+  getCohortAnalytics,
   getCompleteProfileUsers,
+  getFunnelAnalytics,
   getHealthAnalytics,
   getNutritionAnalytics,
+  getRetentionAnalytics,
   getSuperadminAnalytics,
   getSuperadminMe,
   getSuperadminUserById,
   getSuperadminUsers,
+  getSupportTickets,
   updateSuperadminProfile,
+  updateSupportTicketStatus,
 } from "../Controllers/superadminController.js";
 
 const router = express.Router();
@@ -48,6 +54,12 @@ router.get("/ai/generated-meals", getAIGeneratedMeals);
 router.get("/business/analytics", getBusinessAnalytics);
 router.get("/health/analytics", getHealthAnalytics);
 router.get("/nutrition/analytics", getNutritionAnalytics);
+router.get("/funnel/analytics", getFunnelAnalytics);
+router.get("/retention/analytics", getRetentionAnalytics);
+router.get("/cohort/analytics", getCohortAnalytics);
+router.get("/ai/quality", getAIQualityAnalytics);
+router.get("/support/tickets", getSupportTickets);
+router.patch("/support/tickets/:id", updateSupportTicketStatus);
 router.get("/me", getSuperadminMe);
 router.put("/profile", updateSuperadminProfile);
 router.get("/users", getSuperadminUsers);

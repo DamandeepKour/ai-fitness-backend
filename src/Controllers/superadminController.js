@@ -2,6 +2,16 @@ import { getBusinessAnalyticsService } from "../services/businessService.js";
 import { getHealthAnalyticsService } from "../services/healthService.js";
 import { getNutritionAnalyticsService } from "../services/nutritionService.js";
 import {
+  getAIQualityAnalyticsService,
+  getCohortAnalyticsService,
+  getFunnelAnalyticsService,
+  getRetentionAnalyticsService,
+} from "../services/analyticsService.js";
+import {
+  getSupportTicketsService,
+  updateSupportTicketStatusService,
+} from "../services/supportService.js";
+import {
   getAIAnalyticsService,
   getAIGeneratedMealsService,
   getCompleteProfileUsersService,
@@ -117,6 +127,69 @@ export async function getNutritionAnalytics(req, res, next) {
     const data = await getNutritionAnalyticsService();
     res.json({ success: true, data });
   } catch (err) {
+    next(err);
+  }
+}
+
+export async function getFunnelAnalytics(req, res, next) {
+  try {
+    const data = await getFunnelAnalyticsService();
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getRetentionAnalytics(req, res, next) {
+  try {
+    const data = await getRetentionAnalyticsService();
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getCohortAnalytics(req, res, next) {
+  try {
+    const data = await getCohortAnalyticsService();
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getAIQualityAnalytics(req, res, next) {
+  try {
+    const data = await getAIQualityAnalyticsService();
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getSupportTickets(req, res, next) {
+  try {
+    const data = await getSupportTicketsService({
+      status: req.query.status,
+      limit: req.query.limit,
+    });
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateSupportTicketStatus(req, res, next) {
+  try {
+    const ticket = await updateSupportTicketStatusService(req.params.id, req.body.status);
+    if (!ticket) {
+      return res.status(404).json({ success: false, message: "Ticket not found" });
+    }
+    res.json({ success: true, data: ticket });
+  } catch (err) {
+    if (err.message === "Invalid ticket status") {
+      return res.status(400).json({ success: false, message: err.message });
+    }
     next(err);
   }
 }
