@@ -6,6 +6,7 @@ import {
   getAIQualityAnalytics,
   getAIGeneratedMeals,
   getBusinessAnalytics,
+  getCoachReviewQueue,
   getCohortAnalytics,
   getCompleteProfileUsers,
   getFunnelAnalytics,
@@ -17,6 +18,7 @@ import {
   getSuperadminUserById,
   getSuperadminUsers,
   getSupportTickets,
+  updateCoachReviewAdmin,
   updateSuperadminProfile,
   updateSupportTicketStatus,
 } from "../Controllers/superadminController.js";
@@ -60,6 +62,8 @@ router.get("/cohort/analytics", getCohortAnalytics);
 router.get("/ai/quality", getAIQualityAnalytics);
 router.get("/support/tickets", getSupportTickets);
 router.patch("/support/tickets/:id", updateSupportTicketStatus);
+router.get("/coach-reviews", getCoachReviewQueue);
+router.patch("/coach-reviews/:id", updateCoachReviewAdmin);
 router.get("/me", getSuperadminMe);
 router.put("/profile", updateSuperadminProfile);
 router.get("/users", getSuperadminUsers);

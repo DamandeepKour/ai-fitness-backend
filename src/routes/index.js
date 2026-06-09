@@ -9,6 +9,8 @@ import feedbackRoutes from "./feedbackRoutes.js";
 import dashboardRoutes from "./dashboardRoutes.js";
 import contactRoutes from "./contactRoutes.js";
 import superadminRoutes from "./superadminRoutes.js";
+import pantryRoutes from "./pantryRoutes.js";
+import premiumRoutes from "./premiumRoutes.js";
 
 const router = express.Router();
 
@@ -22,5 +24,7 @@ router.use('/ai', feedbackRoutes);
 router.use("/dashboard", dashboardRoutes);
 router.use("/contact", contactRoutes);
 router.use("/superadmin", superadminRoutes);
+router.use("/pantry", pantryRoutes);
+router.use("/premium", premiumRoutes);
 
 export default router;

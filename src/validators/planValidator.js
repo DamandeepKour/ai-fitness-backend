@@ -13,4 +13,6 @@ export const planSchema = Joi.object({
   include_cheat_meal: Joi.boolean().optional(),
   cheat_day: Joi.string().optional().allow(""),
   ai_prompt: Joi.string().optional().allow("").max(500),
+  pantry_mode: Joi.boolean().optional(),
+  budget_tier: Joi.string().valid("budget", "standard", "premium").optional(),
 });

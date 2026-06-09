@@ -142,6 +142,27 @@ idli, dosa, appam, upma, sambar, coconut chutney.
       ? `Include cheat meal ONLY on ${data.cheat_day}`
       : `No cheat meal`;
 
+    // ===== PANTRY MODE =====
+    let pantryInstruction = "";
+    if (data.pantry_mode && Array.isArray(data.pantry_items) && data.pantry_items.length) {
+      pantryInstruction = `
+PANTRY MODE — use ONLY these ingredients where possible:
+${data.pantry_items.join(", ")}
+Do not suggest expensive or unavailable items outside this pantry.
+`;
+    }
+
+    // ===== BUDGET =====
+    let budgetInstruction = "";
+    const budgetMap = {
+      budget: "₹150/day — dal, roti, seasonal sabzi, eggs, local grains. No expensive imports.",
+      standard: "₹250/day — paneer, chicken 2x/week, variety snacks.",
+      premium: "₹400/day — fish, nuts, premium protein, variety.",
+    };
+    if (data.budget_tier && budgetMap[data.budget_tier]) {
+      budgetInstruction = `BUDGET CONSTRAINT: ${budgetMap[data.budget_tier]}`;
+    }
+
     // ================= AI CALL =================
 
     const response = await client.chat.completions.create({
@@ -174,6 +195,8 @@ ${dietInstruction}
 ${foodInstruction}
 ${workoutInstruction}
 ${cheatInstruction}
+${pantryInstruction}
+${budgetInstruction}
 ${data.ai_prompt ? `User custom meal request: ${data.ai_prompt}` : ""}
 
 IMPORTANT:

@@ -7,6 +7,8 @@ import { syncUserTable } from "./src/models/userModel.js";
 import { syncWeightTable } from "./src/models/weightModel.js";
 import { syncContactTable } from "./src/models/contactModel.js";
 import { syncBusinessTables, seedBusinessDemoData } from "./src/models/businessModel.js";
+import { syncPantryTable } from "./src/models/pantryModel.js";
+import { syncPremiumTables } from "./src/models/premiumModel.js";
 
 const syncSteps = [
   { name: "users", fn: syncUserTable },
@@ -17,6 +19,8 @@ const syncSteps = [
   { name: "user_history", fn: syncUserHistoryTable },
   { name: "contact_messages", fn: syncContactTable },
   { name: "business", fn: syncBusinessTables },
+  { name: "pantry_items", fn: syncPantryTable },
+  { name: "premium", fn: syncPremiumTables },
 ];
 
 export default async function initDb() {

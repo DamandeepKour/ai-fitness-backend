@@ -11,6 +11,7 @@ import {
   getSupportTicketsService,
   updateSupportTicketStatusService,
 } from "../services/supportService.js";
+import { getAllCoachReviewsService, updateCoachReviewService } from "../services/premiumService.js";
 import {
   getAIAnalyticsService,
   getAIGeneratedMealsService,
@@ -173,6 +174,27 @@ export async function getSupportTickets(req, res, next) {
       status: req.query.status,
       limit: req.query.limit,
     });
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getCoachReviewQueue(req, res, next) {
+  try {
+    const reviews = await getAllCoachReviewsService();
+    res.json({ success: true, data: { reviews } });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateCoachReviewAdmin(req, res, next) {
+  try {
+    const data = await updateCoachReviewService(req.params.id, req.body);
+    if (!data) {
+      return res.status(404).json({ success: false, message: "Review not found" });
+    }
     res.json({ success: true, data });
   } catch (err) {
     next(err);

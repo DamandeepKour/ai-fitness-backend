@@ -1,10 +1,11 @@
 import generateAIPlan from "./aiService.js";
 import { getRedis } from "../config/redis.js";
 import { savePlan } from "../repositories/planRepo.js";
+import { getPantryIngredientList } from "./pantryService.js";
 
 const createPlanService = async (userId, data) => {
   try {
-    const cacheKey = `plan:${userId}:${data.plan_type}`;
+    const cacheKey = `plan:${userId}:${data.plan_type}:${data.budget_tier || "std"}:${data.pantry_mode ? "pantry" : "full"}`;
 
     const redis = getRedis();
     if (redis) {
@@ -12,7 +13,12 @@ const createPlanService = async (userId, data) => {
       if (cached) return JSON.parse(cached);
     }
 
-    const aiData = await generateAIPlan(data);
+    const planInput = { ...data };
+    if (data.pantry_mode) {
+      planInput.pantry_items = await getPantryIngredientList(userId);
+    }
+
+    const aiData = await generateAIPlan(planInput);
 
     await savePlan(userId, aiData);
 
