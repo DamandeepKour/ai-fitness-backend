@@ -1,4 +1,4 @@
-import { signupService, loginService } from "../services/authService.js";
+import { signupService, loginService, magicLoginService } from "../services/authService.js";
 import { getRedis } from "../config/redis.js";
 
 // 🧑‍💻 SIGNUP
@@ -8,7 +8,7 @@ export const signup = async (req, res, next) => {
 
     res.json({
       success: true,
-      message: "User registered successfully",
+      message: data.message || "User registered successfully",
       data,
     });
   } catch (err) {
@@ -53,6 +53,23 @@ export const loginByType = (userType) => async (req, res, next) => {
       data,
     });
   } catch (err) {
+    next(err);
+  }
+};
+
+export const magicLogin = async (req, res, next) => {
+  try {
+    const token = req.body?.token || req.query?.token;
+    const data = await magicLoginService(token);
+    res.json({
+      success: true,
+      message: "Login successful",
+      data,
+    });
+  } catch (err) {
+    if (err.message === "Invalid or expired login link") {
+      return res.status(401).json({ success: false, message: err.message });
+    }
     next(err);
   }
 };

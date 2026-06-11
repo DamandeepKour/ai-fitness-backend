@@ -9,6 +9,7 @@ import { syncContactTable } from "./src/models/contactModel.js";
 import { syncBusinessTables, seedBusinessDemoData } from "./src/models/businessModel.js";
 import { syncPantryTable } from "./src/models/pantryModel.js";
 import { syncPremiumTables } from "./src/models/premiumModel.js";
+import { syncLoginTokenTable } from "./src/models/loginTokenModel.js";
 
 const syncSteps = [
   { name: "users", fn: syncUserTable },
@@ -21,6 +22,7 @@ const syncSteps = [
   { name: "business", fn: syncBusinessTables },
   { name: "pantry_items", fn: syncPantryTable },
   { name: "premium", fn: syncPremiumTables },
+  { name: "login_tokens", fn: syncLoginTokenTable },
 ];
 
 export default async function initDb() {
