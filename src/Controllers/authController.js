@@ -1,4 +1,10 @@
-import { signupService, loginService, magicLoginService } from "../services/authService.js";
+import {
+  signupService,
+  loginService,
+  magicLoginService,
+  forgotPasswordService,
+  resetPasswordService,
+} from "../services/authService.js";
 import { getRedis } from "../config/redis.js";
 
 // 🧑‍💻 SIGNUP
@@ -70,6 +76,32 @@ export const magicLogin = async (req, res, next) => {
     if (err.message === "Invalid or expired login link") {
       return res.status(401).json({ success: false, message: err.message });
     }
+    next(err);
+  }
+};
+
+export const forgotPassword = async (req, res, next) => {
+  try {
+    const data = await forgotPasswordService(req.body);
+    res.json({
+      success: true,
+      message: data.message || "Email verified",
+      data,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const resetPassword = async (req, res, next) => {
+  try {
+    const data = await resetPasswordService(req.body);
+    res.json({
+      success: true,
+      message: data.message || "Password reset successfully",
+      data,
+    });
+  } catch (err) {
     next(err);
   }
 };

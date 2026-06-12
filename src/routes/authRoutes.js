@@ -6,6 +6,8 @@ import {
   signupByType,
   loginByType,
   magicLogin,
+  forgotPassword,
+  resetPassword,
 } from "../Controllers/authController.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 
@@ -15,6 +17,8 @@ router.post("/signup", signup);
 router.post("/login", login);
 router.post("/magic-login", magicLogin);
 router.get("/magic-login", magicLogin);
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password", resetPassword);
 router.post("/superadmin/signup", signupByType("superadmin"));
 router.post("/superadmin/login", loginByType("superadmin"));
 router.post("/staff/signup", signupByType("staff"));
