@@ -2,10 +2,33 @@ import generateAIPlan from "./aiService.js";
 import { getRedis } from "../config/redis.js";
 import { savePlan } from "../repositories/planRepo.js";
 import { getPantryIngredientList } from "./pantryService.js";
+import { updateUserService } from "./userService.js";
 
 const createPlanService = async (userId, data) => {
   try {
-    const cacheKey = `plan:${userId}:${data.plan_type}:${data.budget_tier || "std"}:${data.pantry_mode ? "pantry" : "full"}`;
+    const profileUpdates = {
+      weight: Number(data.weight),
+      height: Number(data.height),
+      goal: data.goal,
+      diet_type: data.diet_type,
+    };
+
+    await updateUserService(userId, profileUpdates);
+
+    const cacheKey = [
+      "plan",
+      userId,
+      data.plan_type,
+      profileUpdates.weight,
+      profileUpdates.height,
+      profileUpdates.goal,
+      profileUpdates.diet_type,
+      data.workout_type || "home",
+      data.meal_preference || "any",
+      data.budget_tier || "std",
+      data.pantry_mode ? "pantry" : "full",
+      data.ai_prompt || "",
+    ].join(":");
 
     const redis = getRedis();
     if (redis) {
