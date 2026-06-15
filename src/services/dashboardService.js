@@ -70,6 +70,11 @@ const flattenDietPlan = (dietPlan) => {
         meal_type: mealType,
         food_name: meal.food,
         calories: toNumber(meal.calories),
+        energy: toNumber(meal.energy || meal.calories),
+        protein: toNumber(meal.protein),
+        carbs: toNumber(meal.carbs),
+        fibre: toNumber(meal.fibre || meal.fiber),
+        sugar: toNumber(meal.sugar),
       }));
   });
 };

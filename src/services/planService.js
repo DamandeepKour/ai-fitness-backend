@@ -15,6 +15,15 @@ const createPlanService = async (userId, data) => {
 
     await updateUserService(userId, profileUpdates);
 
+    const planInput = { ...data };
+    if (data.pantry_mode) {
+      planInput.pantry_items = await getPantryIngredientList(userId);
+    }
+
+    const pantryCacheKey = data.pantry_mode
+      ? (planInput.pantry_items || []).map((item) => item.toLowerCase()).sort().join(",")
+      : "full";
+
     const cacheKey = [
       "plan",
       userId,
@@ -27,6 +36,7 @@ const createPlanService = async (userId, data) => {
       data.meal_preference || "any",
       data.budget_tier || "std",
       data.pantry_mode ? "pantry" : "full",
+      pantryCacheKey,
       data.ai_prompt || "",
     ].join(":");
 
@@ -34,11 +44,6 @@ const createPlanService = async (userId, data) => {
     if (redis) {
       const cached = await redis.get(cacheKey);
       if (cached) return JSON.parse(cached);
-    }
-
-    const planInput = { ...data };
-    if (data.pantry_mode) {
-      planInput.pantry_items = await getPantryIngredientList(userId);
     }
 
     const aiData = await generateAIPlan(planInput);

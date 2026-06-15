@@ -47,6 +47,54 @@ const ensureWeeklyPlan = (plan, isWeekly) => {
   return days.map((day) => map[day] || { day, meals: {} });
 };
 
+const MEAL_KEYS = [
+  "morning_drink",
+  "breakfast",
+  "mid_morning_snack",
+  "lunch",
+  "evening_snack",
+  "dinner",
+  "after_dinner",
+];
+
+const toNumber = (value) => Number(value || 0);
+
+const normalizeMeal = (meal = {}, fallbackCalories = 0) => {
+  const calories = toNumber(meal.calories || meal.energy || fallbackCalories);
+
+  return {
+    food: meal.food || "",
+    calories,
+    energy: toNumber(meal.energy || calories),
+    protein: toNumber(meal.protein),
+    carbs: toNumber(meal.carbs),
+    fibre: toNumber(meal.fibre || meal.fiber),
+    sugar: toNumber(meal.sugar),
+  };
+};
+
+const normalizeDietPlan = (plan, isWeekly) => {
+  const ensuredPlan = ensureWeeklyPlan(plan, isWeekly);
+
+  return ensuredPlan.map((day) => {
+    const meals = day?.meals && typeof day.meals === "object" ? day.meals : {};
+    const normalizedMeals = {};
+
+    MEAL_KEYS.forEach((mealKey) => {
+      normalizedMeals[mealKey] = normalizeMeal(meals[mealKey]);
+    });
+
+    if (meals.cheat_meal?.food) {
+      normalizedMeals.cheat_meal = normalizeMeal(meals.cheat_meal);
+    }
+
+    return {
+      day: day.day,
+      meals: normalizedMeals,
+    };
+  });
+};
+
 // ================= MAIN FUNCTION =================
 
 const generateAIPlan = async (data) => {
@@ -146,9 +194,11 @@ idli, dosa, appam, upma, sambar, coconut chutney.
     let pantryInstruction = "";
     if (data.pantry_mode && Array.isArray(data.pantry_items) && data.pantry_items.length) {
       pantryInstruction = `
-PANTRY MODE — use ONLY these ingredients where possible:
+PANTRY MODE — use these pantry essentials as the primary meal ingredients:
 ${data.pantry_items.join(", ")}
-Do not suggest expensive or unavailable items outside this pantry.
+Build meals around these pantry items and avoid ingredients outside this list unless they are water, tea, lemon, common spices, salt, herbs, or basic cooking oil.
+If the pantry cannot support a complete meal, use the closest pantry-based meal and keep any extra ingredient minimal.
+Mention pantry items directly in the food names so the user can see they were used.
 `;
     }
 
@@ -203,6 +253,12 @@ IMPORTANT:
 - Follow Indian meals strictly
 - Maintain calorie distribution
 - Give realistic workout
+- Every day must include these meal slots in this order:
+  morning_drink, breakfast, mid_morning_snack, lunch, evening_snack, dinner, after_dinner
+- Morning drink examples: jeera water, jeera saunf water, aloe vera juice + warm water, chia seeds water
+- After dinner examples: green tea, jeera water, saunf water
+- For every meal slot include food, calories, energy, protein, carbs, fibre, and sugar
+- energy must match calories in kcal
 
 FORMAT:
 
@@ -211,12 +267,14 @@ FORMAT:
     {
       "day": "Monday",
       "meals": {
-        "breakfast": {"food": "", "calories": 0},
-        "mid_morning_snack": {"food": "", "calories": 0},
-        "lunch": {"food": "", "calories": 0},
-        "evening_snack": {"food": "", "calories": 0},
-        "dinner": {"food": "", "calories": 0},
-        "cheat_meal": {"food": "", "day": "${data.cheat_day || ""}"}
+        "morning_drink": {"food": "", "calories": 0, "energy": 0, "protein": 0, "carbs": 0, "fibre": 0, "sugar": 0},
+        "breakfast": {"food": "", "calories": 0, "energy": 0, "protein": 0, "carbs": 0, "fibre": 0, "sugar": 0},
+        "mid_morning_snack": {"food": "", "calories": 0, "energy": 0, "protein": 0, "carbs": 0, "fibre": 0, "sugar": 0},
+        "lunch": {"food": "", "calories": 0, "energy": 0, "protein": 0, "carbs": 0, "fibre": 0, "sugar": 0},
+        "evening_snack": {"food": "", "calories": 0, "energy": 0, "protein": 0, "carbs": 0, "fibre": 0, "sugar": 0},
+        "dinner": {"food": "", "calories": 0, "energy": 0, "protein": 0, "carbs": 0, "fibre": 0, "sugar": 0},
+        "after_dinner": {"food": "", "calories": 0, "energy": 0, "protein": 0, "carbs": 0, "fibre": 0, "sugar": 0},
+        "cheat_meal": {"food": "", "calories": 0, "energy": 0, "protein": 0, "carbs": 0, "fibre": 0, "sugar": 0, "day": "${data.cheat_day || ""}"}
       }
     }
   ],
@@ -249,7 +307,7 @@ FORMAT:
       bmi,
       calories,
       steps,
-      diet_plan: ensureWeeklyPlan(parsed.diet_plan, isWeekly),
+      diet_plan: normalizeDietPlan(parsed.diet_plan, isWeekly),
       workout_plan: ensureWeeklyPlan(parsed.workout_plan, isWeekly),
       daily_routine: parsed.daily_routine || {},
     };
@@ -266,9 +324,13 @@ FORMAT:
         {
           day: "Monday",
           meals: {
-            breakfast: { food: "chai + poha + peanuts", calories: 350 },
-            lunch: { food: "rajma + rice + raita", calories: 600 },
-            dinner: { food: "roti + paneer + salad", calories: 500 },
+            morning_drink: { food: "jeera saunf water", calories: 5, energy: 5, protein: 0, carbs: 1, fibre: 0, sugar: 0 },
+            breakfast: { food: "chai + poha + peanuts", calories: 350, energy: 350, protein: 12, carbs: 48, fibre: 5, sugar: 6 },
+            mid_morning_snack: { food: "curd + cucumber", calories: 120, energy: 120, protein: 7, carbs: 10, fibre: 2, sugar: 5 },
+            lunch: { food: "rajma + rice + raita", calories: 600, energy: 600, protein: 24, carbs: 88, fibre: 12, sugar: 7 },
+            evening_snack: { food: "makhana + green tea", calories: 140, energy: 140, protein: 4, carbs: 26, fibre: 3, sugar: 1 },
+            dinner: { food: "roti + paneer + salad", calories: 500, energy: 500, protein: 24, carbs: 46, fibre: 8, sugar: 6 },
+            after_dinner: { food: "green tea", calories: 2, energy: 2, protein: 0, carbs: 0, fibre: 0, sugar: 0 },
           },
         },
       ],
