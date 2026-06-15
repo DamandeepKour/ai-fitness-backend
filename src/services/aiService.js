@@ -253,9 +253,9 @@ IMPORTANT:
 - Follow Indian meals strictly
 - Maintain calorie distribution
 - Give realistic workout
-- Every day must include these meal slots in this order:
+- Every day must include these meal slots in this exact display order:
   morning_drink, breakfast, mid_morning_snack, lunch, evening_snack, dinner, after_dinner
-- Morning drink examples: jeera water, jeera saunf water, aloe vera juice + warm water, chia seeds water
+- morning_drink is the early morning drink. Examples: jeera water, jeera saunf water, aloe vera juice + warm water, chia seeds water
 - After dinner examples: green tea, jeera water, saunf water
 - For every meal slot include food, calories, energy, protein, carbs, fibre, and sugar
 - energy must match calories in kcal

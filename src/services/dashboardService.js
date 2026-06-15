@@ -32,6 +32,17 @@ const parseJson = (value, fallback) => {
   }
 };
 
+const MEAL_SEQUENCE = [
+  "morning_drink",
+  "breakfast",
+  "mid_morning_snack",
+  "lunch",
+  "evening_snack",
+  "dinner",
+  "after_dinner",
+  "cheat_meal",
+];
+
 const buildLast7DaysCalories = (logs, endYmd) => {
   const totalsByDate = new Map();
 
@@ -65,6 +76,11 @@ const flattenDietPlan = (dietPlan) => {
 
     return Object.entries(meals)
       .filter(([, meal]) => meal?.food)
+      .sort(([a], [b]) => {
+        const aIndex = MEAL_SEQUENCE.indexOf(a);
+        const bIndex = MEAL_SEQUENCE.indexOf(b);
+        return (aIndex === -1 ? MEAL_SEQUENCE.length : aIndex) - (bIndex === -1 ? MEAL_SEQUENCE.length : bIndex);
+      })
       .map(([mealType, meal]) => ({
         day: day.day,
         meal_type: mealType,
