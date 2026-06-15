@@ -5,7 +5,7 @@ export const dailyLogTable = "daily_logs";
 export const dailyLogColumns = {
   id: "INT AUTO_INCREMENT PRIMARY KEY",
   user_id: "INT NOT NULL",
-  meal_type: "ENUM('breakfast','mid_morning_snack','lunch','dinner','evening_snack') NOT NULL",
+  meal_type: "ENUM('morning_drink','breakfast','mid_morning_snack','lunch','dinner','evening_snack','after_dinner') NOT NULL",
   food_name: "VARCHAR(255) NOT NULL",
   calories: "INT NOT NULL",
   protein: "INT DEFAULT 0",
@@ -42,6 +42,12 @@ export const syncDailyLogTable = async () => {
       );
     }
   }
+
+  try {
+    await conn.query(
+      `ALTER TABLE ${dailyLogTable} MODIFY COLUMN meal_type ${dailyLogColumns.meal_type}`
+    );
+  } catch (e) {}
 
   // ✅ INDEX (safe version without IF NOT EXISTS)
   try {
