@@ -8,6 +8,8 @@ import { isValidYmd, serverCalendarYmd } from "../utils/localDate.js";
 
 const toNumber = (value) => Number(value || 0);
 
+const emptyNutritionTotals = () => ({ calories: 0, protein: 0, carbs: 0, fat: 0 });
+
 const formatDateKey = (logDate) => {
   if (logDate == null) return "";
   if (typeof logDate === "string" && /^\d{4}-\d{2}-\d{2}/.test(logDate)) {
@@ -20,6 +22,23 @@ const formatDateKey = (logDate) => {
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 };
+
+const shiftDateYmd = (ymd, days) => {
+  const [y, m, d] = ymd.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  date.setDate(date.getDate() + days);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+};
+
+const sumNutritionTotals = (logs) => logs.reduce(
+  (acc, log) => ({
+    calories: acc.calories + toNumber(log.calories),
+    protein: acc.protein + toNumber(log.protein),
+    carbs: acc.carbs + toNumber(log.carbs),
+    fat: acc.fat + toNumber(log.fat),
+  }),
+  emptyNutritionTotals()
+);
 
 const parseJson = (value, fallback) => {
   if (!value) return fallback;
@@ -105,15 +124,10 @@ const getDashboardService = async (userId, logDateYmd) => {
     const weightHistory = await getRecentWeights(userId, 6);
     const user = await getUserByIdService(userId);
 
-    const totals = logs.reduce(
-      (acc, log) => ({
-        calories: acc.calories + toNumber(log.calories),
-        protein: acc.protein + toNumber(log.protein),
-        carbs: acc.carbs + toNumber(log.carbs),
-        fat: acc.fat + toNumber(log.fat),
-      }),
-      { calories: 0, protein: 0, carbs: 0, fat: 0 }
-    );
+    const totals = sumNutritionTotals(logs);
+    const previousLogDate = shiftDateYmd(logDate, -1);
+    const previousLogs = last7DaysLogs.filter((log) => formatDateKey(log.log_date) === previousLogDate);
+    const previousTotals = sumNutritionTotals(previousLogs);
 
     const targetCalories = plan?.calories || 2000;
     const currentWeight = weight?.weight || user?.weight || null;
@@ -135,6 +149,14 @@ const getDashboardService = async (userId, logDateYmd) => {
           protein: totals.protein,
           carbs: totals.carbs,
           fat: totals.fat,
+        },
+      },
+      yesterday: {
+        consumed_calories: previousTotals.calories,
+        macros: {
+          protein: previousTotals.protein,
+          carbs: previousTotals.carbs,
+          fat: previousTotals.fat,
         },
       },
       targets: {
