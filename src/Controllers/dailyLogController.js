@@ -20,7 +20,7 @@ export const addDailyLog = async (req, res, next) => {
       message: result.inserted ? "Meal logged" : "Meal saved",
       data: {
         id: result.id,
-        meal_type: payload.meal_type,
+        meal_type: result.meal_type || payload.meal_type,
         food_name: payload.food_name,
         calories: payload.calories,
         protein: payload.protein,

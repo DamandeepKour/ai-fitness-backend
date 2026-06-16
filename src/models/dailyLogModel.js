@@ -15,6 +15,30 @@ export const dailyLogColumns = {
   created_at: "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
 };
 
+const normalizeExistingMealTypes = async (conn) => {
+  await conn.query(`ALTER TABLE ${dailyLogTable} MODIFY COLUMN meal_type VARCHAR(50) NOT NULL`);
+
+  await conn.query(`
+    UPDATE ${dailyLogTable}
+    SET meal_type = CASE LOWER(REPLACE(REPLACE(TRIM(meal_type), ' ', '_'), '-', '_'))
+      WHEN 'morning_drink' THEN 'morning_drink'
+      WHEN 'early_morning_drink' THEN 'morning_drink'
+      WHEN 'breakfast' THEN 'breakfast'
+      WHEN 'mid_morning_snack' THEN 'mid_morning_snack'
+      WHEN 'mid_morning' THEN 'mid_morning_snack'
+      WHEN 'lunch' THEN 'lunch'
+      WHEN 'snack' THEN 'evening_snack'
+      WHEN 'snacks' THEN 'evening_snack'
+      WHEN 'evening_snack' THEN 'evening_snack'
+      WHEN 'dinner' THEN 'dinner'
+      WHEN 'after_dinner' THEN 'after_dinner'
+      WHEN 'after_dinner_drink' THEN 'after_dinner'
+      WHEN 'cheat_meal' THEN 'dinner'
+      ELSE 'evening_snack'
+    END
+  `);
+};
+
 export const syncDailyLogTable = async () => {
   const conn = await db();
 
@@ -44,10 +68,13 @@ export const syncDailyLogTable = async () => {
   }
 
   try {
+    await normalizeExistingMealTypes(conn);
     await conn.query(
       `ALTER TABLE ${dailyLogTable} MODIFY COLUMN meal_type ${dailyLogColumns.meal_type}`
     );
-  } catch (e) {}
+  } catch (e) {
+    console.warn(`⚠️ Unable to update ${dailyLogTable}.meal_type enum:`, e.message);
+  }
 
   // ✅ INDEX (safe version without IF NOT EXISTS)
   try {
