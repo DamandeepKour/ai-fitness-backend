@@ -95,6 +95,24 @@ const normalizeDietPlan = (plan, isWeekly) => {
   });
 };
 
+const normalizeWorkoutPlan = (plan, isWeekly) => {
+  const ensuredPlan = ensureWeeklyPlan(plan, isWeekly);
+
+  return ensuredPlan.map((day) => ({
+    day: day.day,
+    type: day.type || "home",
+    focus: day.focus || "balanced",
+    warmup: day.warmup || "",
+    exercise: day.exercise || "",
+    yoga_balance: day.yoga_balance || "",
+    duration: toNumber(day.duration),
+    calories_burned: toNumber(day.calories_burned),
+    steps: toNumber(day.steps),
+    intensity: day.intensity || "moderate",
+    injury_notes: day.injury_notes || "",
+  }));
+};
+
 // ================= MAIN FUNCTION =================
 
 const generateAIPlan = async (data) => {
@@ -132,6 +150,39 @@ Use MIX workouts:
 running, walking, zumba + strength training.
 `;
     }
+
+    if (data.workout_type === "cardio") {
+      workoutInstruction = `
+Use CARDIO coaching:
+walking, brisk walk intervals, cycling, low-impact cardio, step-ups, and mobility cooldown.
+`;
+    }
+
+    if (data.workout_type === "yoga") {
+      workoutInstruction = `
+Use YOGA + BALANCE coaching:
+surya namaskar modifications, cat-cow, child pose, low lunge, bridge, tree pose, breathing, and gentle mobility.
+`;
+    }
+
+    const workoutFocusMap = {
+      balanced: "balanced strength + cardio + mobility",
+      strength: "strength and muscle tone",
+      cardio: "cardio stamina and heart health",
+      yoga_mobility: "yoga, balance, flexibility, and recovery",
+      injury_safe: "injury-safe low-impact training with conservative progressions",
+      weight_loss: "fat loss with cardio + strength balance",
+    };
+
+    const workoutCoachingInstruction = `
+WORKOUT COACH REQUEST:
+Workout type: ${data.workout_type || "home"}
+Workout focus: ${workoutFocusMap[data.workout_focus] || workoutFocusMap.balanced}
+Injury notes: ${data.injury_notes || "none"}
+Build a practical plan for the selected setting: home workout, gym, cardio, or yoga/balance.
+If injury notes are present, avoid risky moves and include safe substitutions. Add a short "injury_notes" coaching line for each day.
+Every workout day must include warmup, main exercise, yoga_balance or mobility work, duration, calories_burned, steps, intensity, and injury_notes.
+`;
 
     // ===== DIET RULES =====
     const dietRules = parseDietType(data.diet_type);
@@ -244,6 +295,7 @@ Steps Target: ${steps}
 ${dietInstruction}
 ${foodInstruction}
 ${workoutInstruction}
+${workoutCoachingInstruction}
 ${cheatInstruction}
 ${pantryInstruction}
 ${budgetInstruction}
@@ -259,6 +311,7 @@ IMPORTANT:
 - After dinner examples: green tea, jeera water, saunf water
 - For every meal slot include food, calories, energy, protein, carbs, fibre, and sugar
 - energy must match calories in kcal
+- Workout plan must match the workout coach request, include yoga/balance support, and respect injury notes
 
 FORMAT:
 
@@ -283,10 +336,15 @@ FORMAT:
     {
       "day": "Monday",
       "type": "${data.workout_type}",
+      "focus": "${data.workout_focus || "balanced"}",
+      "warmup": "",
       "exercise": "",
+      "yoga_balance": "",
       "duration": 0,
       "calories_burned": 0,
-      "steps": ${steps}
+      "steps": ${steps},
+      "intensity": "moderate",
+      "injury_notes": ""
     }
   ],
 
@@ -308,7 +366,7 @@ FORMAT:
       calories,
       steps,
       diet_plan: normalizeDietPlan(parsed.diet_plan, isWeekly),
-      workout_plan: ensureWeeklyPlan(parsed.workout_plan, isWeekly),
+      workout_plan: normalizeWorkoutPlan(parsed.workout_plan, isWeekly),
       daily_routine: parsed.daily_routine || {},
     };
 
@@ -338,10 +396,15 @@ FORMAT:
         {
           day: "Monday",
           type: "home",
-          exercise: "walking + squats + jumping jacks",
+          focus: "balanced",
+          warmup: "5 min easy walk + shoulder rolls + hip circles",
+          exercise: "3 rounds: chair squats 12 reps, wall push-ups 10 reps, glute bridges 12 reps, low-impact step jacks 30 sec",
+          yoga_balance: "Cat-cow 8 reps + tree pose 20 sec each side + child pose breathing 1 min",
           duration: 40,
           calories_burned: 300,
           steps: 8000,
+          intensity: "moderate",
+          injury_notes: "Keep movements pain-free and replace jumps with marching if knees or back feel uncomfortable.",
         },
       ],
       daily_routine: {},

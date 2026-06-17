@@ -33,6 +33,8 @@ const createPlanService = async (userId, data) => {
       profileUpdates.goal,
       profileUpdates.diet_type,
       data.workout_type || "home",
+      data.workout_focus || "balanced",
+      data.injury_notes || "",
       data.meal_preference || "any",
       data.budget_tier || "std",
       data.pantry_mode ? "pantry" : "full",
