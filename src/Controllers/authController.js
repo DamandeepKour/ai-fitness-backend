@@ -4,8 +4,60 @@ import {
   magicLoginService,
   forgotPasswordService,
   resetPasswordService,
+  verifyEmailService,
 } from "../services/authService.js";
+import { googleAuthService } from "../services/googleAuthService.js";
+import { verifyEmailSchema, googleAuthSchema } from "../validators/authValidator.js";
 import { getRedis } from "../config/redis.js";
+
+export const verifyEmail = async (req, res, next) => {
+  try {
+    const { error } = verifyEmailSchema.validate(req.body, { abortEarly: false });
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        message: error.details[0]?.message || "Invalid email",
+      });
+    }
+
+    const data = await verifyEmailService(req.body);
+    res.json({
+      success: true,
+      message: data.message,
+      data,
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: err.message || "Invalid email",
+    });
+  }
+};
+
+export const googleAuth = async (req, res, next) => {
+  try {
+    const { error } = googleAuthSchema.validate(req.body, { abortEarly: false });
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        message: error.details[0]?.message || "Invalid Google sign-in",
+      });
+    }
+
+    const data = await googleAuthService(req.body.credential);
+    res.json({
+      success: true,
+      message: data.isNewUser ? "Account created with Google" : "Google login successful",
+      data,
+    });
+  } catch (err) {
+    const status = err.message?.includes("not configured") ? 503 : 401;
+    res.status(status).json({
+      success: false,
+      message: err.message || "Google sign-in failed",
+    });
+  }
+};
 
 // 🧑‍💻 SIGNUP
 export const signup = async (req, res, next) => {
@@ -18,6 +70,16 @@ export const signup = async (req, res, next) => {
       data,
     });
   } catch (err) {
+    if (
+      err.message?.includes("email") ||
+      err.message?.includes("Email") ||
+      err.message?.includes("Password") ||
+      err.message?.includes("Name") ||
+      err.message?.includes("already exists") ||
+      err.message?.includes("disposable")
+    ) {
+      return res.status(400).json({ success: false, message: err.message });
+    }
     next(err);
   }
 };

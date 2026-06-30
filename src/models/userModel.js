@@ -18,6 +18,9 @@ export const userColumns = {
   goal: "VARCHAR(50)",
   diet_type: "VARCHAR(50)",
   activity_level: "VARCHAR(50)",
+  auth_provider: "VARCHAR(20) DEFAULT 'local'",
+  google_id: "VARCHAR(255) NULL",
+  profile_picture: "VARCHAR(500) NULL",
   created_at: "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
   last_updated_at: "TIMESTAMP NULL DEFAULT NULL"
 };

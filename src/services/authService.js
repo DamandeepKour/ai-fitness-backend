@@ -6,6 +6,8 @@ import { createSignupLoginLink, verifyLoginTokenService } from "./loginTokenServ
 import { loginTokenTable } from "../models/loginTokenModel.js";
 import { getFrontendUrl } from "../config/email.js";
 import { sendPasswordResetEmail } from "./emailService.js";
+import { validateSignupEmail, normalizeEmail } from "../utils/emailValidator.js";
+import { signupSchema } from "../validators/authValidator.js";
 
 const ALLOWED_USER_TYPES = new Set(["user", "staff", "superadmin"]);
 const PASSWORD_RESET_TOKEN_BYTES = 32;
@@ -45,20 +47,34 @@ function createPasswordResetToken() {
   return crypto.randomBytes(PASSWORD_RESET_TOKEN_BYTES).toString("hex");
 }
 
+export const verifyEmailService = async (data) => {
+  const email = await validateSignupEmail(data.email);
+  return {
+    valid: true,
+    email,
+    message: "Email is valid",
+  };
+};
+
 // 🔐 SIGNUP
 export const signupService = async (data, options = {}) => {
+  const { error, value } = signupSchema.validate(data, { abortEarly: false, stripUnknown: true });
+  if (error) {
+    throw new Error(error.details[0]?.message || "Invalid signup data");
+  }
+
   const conn = await db();
   const userType = normalizeUserType(options.userType || data.user_type);
-  const email = String(data.email || "").trim().toLowerCase();
+  const email = await validateSignupEmail(value.email);
 
-  const hashedPassword = await bcrypt.hash(data.password, 10);
+  const hashedPassword = await bcrypt.hash(value.password, 10);
 
   let result;
   try {
     [result] = await conn.query(
       `INSERT INTO users (name, email, password, user_type, mobile_number)
        VALUES (?, ?, ?, ?, ?)`,
-      [data.name, email, hashedPassword, userType, data.phone || data.mobile_number || null],
+      [value.name, email, hashedPassword, userType, value.phone || value.mobile_number || null],
     );
   } catch (err) {
     if (err.code === "ER_DUP_ENTRY") {
@@ -73,7 +89,7 @@ export const signupService = async (data, options = {}) => {
   if (userType === "user") {
     loginLink = await createSignupLoginLink(userId, {
       email,
-      name: data.name,
+      name: value.name,
     });
   }
 

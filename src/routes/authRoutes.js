@@ -8,12 +8,16 @@ import {
   magicLogin,
   forgotPassword,
   resetPassword,
+  verifyEmail,
+  googleAuth,
 } from "../Controllers/authController.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
 router.post("/signup", signup);
+router.post("/verify-email", verifyEmail);
+router.post("/google", googleAuth);
 router.post("/login", login);
 router.post("/magic-login", magicLogin);
 router.get("/magic-login", magicLogin);
