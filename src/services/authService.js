@@ -6,12 +6,8 @@ import { verifyLoginTokenService } from "./loginTokenService.js";
 import { loginTokenTable } from "../models/loginTokenModel.js";
 import { getFrontendUrl } from "../config/email.js";
 import { sendPasswordResetEmail } from "./emailService.js";
-import { validateSignupEmail, normalizeEmail } from "../utils/emailValidator.js";
+import { validateSignupEmail } from "../utils/emailValidator.js";
 import { signupSchema } from "../validators/authValidator.js";
-import {
-  verifySignupCode,
-  deletePendingSignup,
-} from "./signupVerificationService.js";
 
 const ALLOWED_USER_TYPES = new Set(["user", "staff", "superadmin"]);
 const PASSWORD_RESET_TOKEN_BYTES = 32;
@@ -70,19 +66,7 @@ export const signupService = async (data, options = {}) => {
   const conn = await db();
   const userType = normalizeUserType(options.userType || data.user_type);
   const email = await validateSignupEmail(value.email);
-
-  let hashedPassword = await bcrypt.hash(value.password, 10);
-
-  if (userType === "user") {
-    const code = String(data.code || data.verificationCode || "").trim();
-    if (!code) {
-      throw new Error("Email verification code is required. Request a code first.");
-    }
-
-    const pending = await verifySignupCode(conn, email, code);
-    hashedPassword = pending.password_hash;
-    await deletePendingSignup(conn, email);
-  }
+  const hashedPassword = await bcrypt.hash(value.password, 10);
 
   let result;
   try {
