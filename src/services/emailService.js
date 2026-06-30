@@ -146,3 +146,71 @@ export async function sendPasswordResetEmail({ to, name, resetUrl }) {
 
   return { sent: true };
 }
+
+function buildSignupOtpHtml({ name, code, expiresInMinutes }) {
+  const displayName = name || "there";
+  return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table width="100%" style="max-width:480px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+          <tr>
+            <td style="background:linear-gradient(135deg,#059669,#7c3aed);padding:28px 24px;text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:600;">Verify your email</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:28px 24px;text-align:center;">
+              <p style="margin:0 0 16px;color:#18181b;font-size:16px;">Hi ${displayName},</p>
+              <p style="margin:0 0 20px;color:#52525b;font-size:15px;line-height:1.6;">
+                Enter this code on the signup page to confirm your email address:
+              </p>
+              <p style="margin:0 0 20px;font-size:32px;font-weight:700;letter-spacing:8px;color:#059669;">${code}</p>
+              <p style="margin:0;color:#71717a;font-size:13px;">
+                This code expires in ${expiresInMinutes} minutes. If you didn't request this, ignore this email.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+export async function sendSignupOtpEmail({ to, name, code, expiresInMinutes }) {
+  const subject = "Your FitNova AI verification code";
+
+  if (!isEmailConfigured()) {
+    console.warn("[email] SMTP not configured — OTP for", to, ":", code);
+    return { sent: false, reason: "smtp_not_configured" };
+  }
+
+  const config = getEmailConfig();
+  const transporter = nodemailer.createTransport({
+    host: config.host,
+    port: config.port,
+    secure: config.secure,
+    auth: {
+      user: config.user,
+      pass: config.pass,
+    },
+  });
+
+  const text = `Hi ${name || "there"},\n\nYour FitNova AI verification code is: ${code}\n\nThis code expires in ${expiresInMinutes} minutes.\n\nIf you didn't sign up, ignore this email.`;
+
+  await transporter.sendMail({
+    from: `"${config.fromName}" <${config.from}>`,
+    to,
+    subject,
+    text,
+    html: buildSignupOtpHtml({ name, code, expiresInMinutes }),
+  });
+
+  return { sent: true };
+}

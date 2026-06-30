@@ -10,12 +10,14 @@ import {
   resetPassword,
   verifyEmail,
   googleAuth,
+  sendSignupCode,
 } from "../Controllers/authController.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
 router.post("/signup", signup);
+router.post("/signup/send-code", sendSignupCode);
 router.post("/verify-email", verifyEmail);
 router.post("/google", googleAuth);
 router.post("/login", login);

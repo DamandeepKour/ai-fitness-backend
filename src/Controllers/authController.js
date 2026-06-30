@@ -6,9 +6,26 @@ import {
   resetPasswordService,
   verifyEmailService,
 } from "../services/authService.js";
+import { sendSignupCodeService } from "../services/signupVerificationService.js";
 import { googleAuthService } from "../services/googleAuthService.js";
 import { verifyEmailSchema, googleAuthSchema } from "../validators/authValidator.js";
 import { getRedis } from "../config/redis.js";
+
+export const sendSignupCode = async (req, res, next) => {
+  try {
+    const data = await sendSignupCodeService(req.body);
+    res.json({
+      success: true,
+      message: data.message,
+      data,
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: err.message || "Could not send verification code",
+    });
+  }
+};
 
 export const verifyEmail = async (req, res, next) => {
   try {
@@ -75,6 +92,10 @@ export const signup = async (req, res, next) => {
       err.message?.includes("Email") ||
       err.message?.includes("Password") ||
       err.message?.includes("Name") ||
+      err.message?.includes("verification") ||
+      err.message?.includes("Verification") ||
+      err.message?.includes("code") ||
+      err.message?.includes("Code") ||
       err.message?.includes("already exists") ||
       err.message?.includes("disposable")
     ) {

@@ -2,12 +2,16 @@ import db from "../config/db.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import { createSignupLoginLink, verifyLoginTokenService } from "./loginTokenService.js";
+import { verifyLoginTokenService } from "./loginTokenService.js";
 import { loginTokenTable } from "../models/loginTokenModel.js";
 import { getFrontendUrl } from "../config/email.js";
 import { sendPasswordResetEmail } from "./emailService.js";
 import { validateSignupEmail, normalizeEmail } from "../utils/emailValidator.js";
 import { signupSchema } from "../validators/authValidator.js";
+import {
+  verifySignupCode,
+  deletePendingSignup,
+} from "./signupVerificationService.js";
 
 const ALLOWED_USER_TYPES = new Set(["user", "staff", "superadmin"]);
 const PASSWORD_RESET_TOKEN_BYTES = 32;
@@ -67,7 +71,18 @@ export const signupService = async (data, options = {}) => {
   const userType = normalizeUserType(options.userType || data.user_type);
   const email = await validateSignupEmail(value.email);
 
-  const hashedPassword = await bcrypt.hash(value.password, 10);
+  let hashedPassword = await bcrypt.hash(value.password, 10);
+
+  if (userType === "user") {
+    const code = String(data.code || data.verificationCode || "").trim();
+    if (!code) {
+      throw new Error("Email verification code is required. Request a code first.");
+    }
+
+    const pending = await verifySignupCode(conn, email, code);
+    hashedPassword = pending.password_hash;
+    await deletePendingSignup(conn, email);
+  }
 
   let result;
   try {
@@ -84,24 +99,27 @@ export const signupService = async (data, options = {}) => {
   }
 
   const userId = result.insertId;
-  let loginLink = null;
 
   if (userType === "user") {
-    loginLink = await createSignupLoginLink(userId, {
-      email,
-      name: value.name,
-    });
+    const [rows] = await conn.query(`SELECT * FROM users WHERE id = ? LIMIT 1`, [userId]);
+    const user = rows[0];
+    const token = signToken(user);
+
+    return {
+      id: userId,
+      user_type: userType,
+      token,
+      user: sanitizeUser(user),
+      emailSent: false,
+      message: "Account created successfully. You are now signed in.",
+    };
   }
 
   return {
     id: userId,
     user_type: userType,
-    emailSent: loginLink?.emailSent ?? false,
-    message: loginLink?.emailSent
-      ? "Account created. Check your email for a login link."
-      : loginLink
-        ? "Account created. Email could not be sent — check SMTP settings or use password login."
-        : "User registered successfully",
+    emailSent: false,
+    message: "User registered successfully",
   };
 };
 
