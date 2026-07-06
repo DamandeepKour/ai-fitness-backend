@@ -8,6 +8,12 @@ import { getFrontendUrl } from "../config/email.js";
 import { sendPasswordResetEmail } from "./emailService.js";
 import { validateSignupEmail } from "../utils/emailValidator.js";
 import { signupSchema } from "../validators/authValidator.js";
+import {
+  createUser,
+  findUserByEmail,
+  findUserById,
+} from "../repositories/userRepository.js";
+import { createAndSendVerificationToken } from "./emailVerificationService.js";
 
 const ALLOWED_USER_TYPES = new Set(["user", "staff", "superadmin"]);
 const PASSWORD_RESET_TOKEN_BYTES = 32;
@@ -20,7 +26,7 @@ function normalizeUserType(value) {
 
 function sanitizeUser(user) {
   if (!user) return null;
-  const { password, ...safeUser } = user;
+  const { password, verification_token, verification_token_expiry, ...safeUser } = user;
   return safeUser;
 }
 
@@ -47,6 +53,14 @@ function createPasswordResetToken() {
   return crypto.randomBytes(PASSWORD_RESET_TOKEN_BYTES).toString("hex");
 }
 
+function assertUserVerified(user) {
+  if (user.is_verified === false || user.is_verified === 0) {
+    const err = new Error("Please verify your email before logging in.");
+    err.statusCode = 403;
+    throw err;
+  }
+}
+
 export const verifyEmailService = async (data) => {
   const email = await validateSignupEmail(data.email);
   return {
@@ -63,18 +77,28 @@ export const signupService = async (data, options = {}) => {
     throw new Error(error.details[0]?.message || "Invalid signup data");
   }
 
-  const conn = await db();
   const userType = normalizeUserType(options.userType || data.user_type);
   const email = await validateSignupEmail(value.email);
   const hashedPassword = await bcrypt.hash(value.password, 10);
+  const mobileNumber = value.phone || value.mobile_number || null;
 
-  let result;
+  const existingUser = await findUserByEmail(email);
+  if (existingUser) {
+    throw new Error("An account with this email already exists");
+  }
+
+  const isVerified = userType !== "user";
+  let userId;
+
   try {
-    [result] = await conn.query(
-      `INSERT INTO users (name, email, password, user_type, mobile_number)
-       VALUES (?, ?, ?, ?, ?)`,
-      [value.name, email, hashedPassword, userType, value.phone || value.mobile_number || null],
-    );
+    userId = await createUser({
+      name: value.name,
+      email,
+      password: hashedPassword,
+      userType,
+      mobileNumber,
+      isVerified,
+    });
   } catch (err) {
     if (err.code === "ER_DUP_ENTRY") {
       throw new Error("An account with this email already exists");
@@ -82,20 +106,16 @@ export const signupService = async (data, options = {}) => {
     throw err;
   }
 
-  const userId = result.insertId;
-
   if (userType === "user") {
-    const [rows] = await conn.query(`SELECT * FROM users WHERE id = ? LIMIT 1`, [userId]);
-    const user = rows[0];
-    const token = signToken(user);
+    const user = await findUserById(userId);
+    const emailResult = await createAndSendVerificationToken(user);
 
     return {
       id: userId,
       user_type: userType,
-      token,
-      user: sanitizeUser(user),
-      emailSent: false,
-      message: "Account created successfully. You are now signed in.",
+      emailSent: emailResult.emailSent,
+      expiresInMinutes: emailResult.expiresInMinutes,
+      message: "Verification email sent successfully.",
     };
   }
 
@@ -109,23 +129,21 @@ export const signupService = async (data, options = {}) => {
 
 // 🔐 LOGIN
 export const loginService = async (data, options = {}) => {
-  const conn = await db();
   const requiredUserType = options.requiredUserType
     ? normalizeUserType(options.requiredUserType)
     : null;
 
-  const [rows] = await conn.query(
-    `SELECT * FROM users WHERE email = ?`,
-    [String(data.email || "").trim().toLowerCase()],
-  );
-
-  const user = rows[0];
+  const user = await findUserByEmail(String(data.email || "").trim().toLowerCase());
   if (!user) throw new Error("User not found");
 
   const isMatch = await bcrypt.compare(data.password, user.password);
   if (!isMatch) throw new Error("Invalid credentials");
   if (requiredUserType && user.user_type !== requiredUserType) {
     throw new Error(`This login is only allowed for ${requiredUserType} accounts`);
+  }
+
+  if (user.auth_provider === "local" || !user.auth_provider) {
+    assertUserVerified(user);
   }
 
   const token = signToken(user);
@@ -135,6 +153,7 @@ export const loginService = async (data, options = {}) => {
 
 export const magicLoginService = async (token) => {
   const { user } = await verifyLoginTokenService(token);
+  assertUserVerified(user);
   const jwtToken = signToken(user);
   return { token: jwtToken, user: sanitizeUser(user) };
 };
@@ -143,15 +162,10 @@ export const forgotPasswordService = async (data) => {
   const email = String(data.email || "").trim().toLowerCase();
   if (!email) throw new Error("Email is required");
 
-  const conn = await db();
-  const [rows] = await conn.query(
-    `SELECT id, email, name FROM users WHERE email = ? LIMIT 1`,
-    [email],
-  );
-
-  const user = rows[0];
+  const user = await findUserByEmail(email);
   if (!user) throw new Error("No account found with this email");
 
+  const conn = await db();
   const token = createPasswordResetToken();
   await conn.query(
     `INSERT INTO ${loginTokenTable} (user_id, token, purpose, expires_at)

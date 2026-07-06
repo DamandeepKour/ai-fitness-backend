@@ -1,6 +1,93 @@
 import nodemailer from "nodemailer";
 import { getEmailConfig, isEmailConfigured } from "../config/email.js";
 
+function buildEmailVerificationHtml({ name, verifyUrl, expiresInMinutes }) {
+  const displayName = name || "there";
+  return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table width="100%" style="max-width:480px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+          <tr>
+            <td style="background:linear-gradient(135deg,#2563eb,#7c3aed);padding:32px 24px;text-align:center;">
+              <p style="margin:0 0 8px;color:rgba(255,255,255,0.9);font-size:14px;font-weight:600;letter-spacing:0.5px;">FitNova AI</p>
+              <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;">Verify Your Email</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px 24px;">
+              <p style="margin:0 0 16px;color:#18181b;font-size:16px;">Hi ${displayName},</p>
+              <p style="margin:0 0 24px;color:#52525b;font-size:15px;line-height:1.6;">
+                Thanks for signing up for FitNova AI. Please confirm your email address to activate your account and start your fitness journey.
+              </p>
+              <table cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+                <tr>
+                  <td style="border-radius:12px;background:linear-gradient(135deg,#2563eb,#7c3aed);">
+                    <a href="${verifyUrl}" style="display:inline-block;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 32px;border-radius:12px;">
+                      Verify Email
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:0 0 8px;color:#71717a;font-size:13px;line-height:1.5;">
+                This verification link expires in <strong>${expiresInMinutes} minutes</strong>.
+              </p>
+              <p style="margin:16px 0 0;color:#a1a1aa;font-size:12px;line-height:1.5;word-break:break-all;">
+                Or copy this link: ${verifyUrl}
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 24px;background:#fafafa;border-top:1px solid #f4f4f5;">
+              <p style="margin:0;color:#a1a1aa;font-size:12px;line-height:1.5;text-align:center;">
+                If you didn't create this account, you can safely ignore this email.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+export async function sendEmailVerificationEmail({ to, name, verifyUrl, expiresInMinutes }) {
+  const subject = "Verify your FitNova AI email";
+
+  if (!isEmailConfigured()) {
+    console.warn("[email] SMTP not configured — verification link for", to, ":", verifyUrl);
+    return { sent: false, reason: "smtp_not_configured", verifyUrl };
+  }
+
+  const config = getEmailConfig();
+  const transporter = nodemailer.createTransport({
+    host: config.host,
+    port: config.port,
+    secure: config.secure,
+    auth: {
+      user: config.user,
+      pass: config.pass,
+    },
+  });
+
+  const text = `Hi ${name || "there"},\n\nVerify your FitNova AI email address:\n${verifyUrl}\n\nThis link expires in ${expiresInMinutes} minutes.\n\nIf you didn't create this account, ignore this email.`;
+
+  await transporter.sendMail({
+    from: `"${config.fromName}" <${config.from}>`,
+    to,
+    subject,
+    text,
+    html: buildEmailVerificationHtml({ name, verifyUrl, expiresInMinutes }),
+  });
+
+  return { sent: true };
+}
+
 function buildSignupLoginHtml({ name, loginUrl }) {
   const displayName = name || "there";
   return `

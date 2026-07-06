@@ -32,8 +32,8 @@ async function createGoogleUser({ email, name, googleId, picture }) {
   const hashedPassword = await bcrypt.hash(randomPassword, 10);
 
   const [result] = await conn.query(
-    `INSERT INTO users (name, email, password, user_type, auth_provider, google_id, profile_picture)
-     VALUES (?, ?, ?, 'user', 'google', ?, ?)`,
+    `INSERT INTO users (name, email, password, user_type, auth_provider, google_id, profile_picture, is_verified, verified_at)
+     VALUES (?, ?, ?, 'user', 'google', ?, ?, TRUE, NOW())`,
     [name || email.split("@")[0], email, hashedPassword, googleId, picture || null],
   );
 
@@ -69,7 +69,7 @@ export async function googleAuthService(credential) {
   if (user) {
     if (!user.google_id) {
       await conn.query(
-        `UPDATE users SET google_id = ?, auth_provider = 'google', profile_picture = COALESCE(?, profile_picture) WHERE id = ?`,
+        `UPDATE users SET google_id = ?, auth_provider = 'google', profile_picture = COALESCE(?, profile_picture), is_verified = TRUE, verified_at = COALESCE(verified_at, NOW()) WHERE id = ?`,
         [googleId, picture, user.id],
       );
       const [updated] = await conn.query(`SELECT * FROM users WHERE id = ? LIMIT 1`, [user.id]);

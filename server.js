@@ -18,6 +18,7 @@ import initDb from "./initDb.js";
 import routes from "./src/routes/index.js";
 import errorHandler from "./src/middleware/errorHandler.js";
 import { connectRedis } from "./src/config/redis.js";
+import { startVerificationCleanupJob } from "./src/jobs/verificationCleanupJob.js";
 
 const app = express();
 
@@ -49,6 +50,7 @@ const startServer = async () => {
 
     await initDb();
     await connectRedis();
+    startVerificationCleanupJob();
 
     app.listen(PORT, "0.0.0.0", () => {
       console.log(`🚀 Server running on port ${PORT}`);

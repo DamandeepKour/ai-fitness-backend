@@ -21,6 +21,10 @@ export const userColumns = {
   auth_provider: "VARCHAR(20) DEFAULT 'local'",
   google_id: "VARCHAR(255) NULL",
   profile_picture: "VARCHAR(500) NULL",
+  is_verified: "BOOLEAN DEFAULT FALSE",
+  verification_token: "VARCHAR(255) NULL",
+  verification_token_expiry: "DATETIME NULL",
+  verified_at: "DATETIME NULL",
   created_at: "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
   last_updated_at: "TIMESTAMP NULL DEFAULT NULL"
 };
@@ -37,6 +41,8 @@ export const syncUserTable = async () => {
   const [existing] = await conn.query(`SHOW COLUMNS FROM ${userTable}`);
   const existingCols = existing.map((c) => c.Field);
 
+  const hadVerifiedColumn = existingCols.includes("is_verified");
+
   for (const col in userColumns) {
     if (!existingCols.includes(col)) {
       await conn.query(
@@ -44,4 +50,19 @@ export const syncUserTable = async () => {
       );
     }
   }
+
+  if (!hadVerifiedColumn) {
+    await conn.query(
+      `UPDATE ${userTable}
+       SET is_verified = TRUE, verified_at = COALESCE(verified_at, NOW())
+       WHERE is_verified = FALSE OR is_verified IS NULL`
+    );
+  }
+
+  await conn.query(
+    `UPDATE ${userTable}
+     SET is_verified = TRUE, verified_at = COALESCE(verified_at, NOW())
+     WHERE auth_provider = 'google'
+       AND (is_verified = FALSE OR is_verified IS NULL)`
+  );
 };

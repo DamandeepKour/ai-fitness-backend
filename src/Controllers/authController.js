@@ -7,8 +7,15 @@ import {
   verifyEmailService,
 } from "../services/authService.js";
 import { sendSignupCodeService } from "../services/signupVerificationService.js";
+import {
+  verifyEmailByToken,
+  resendVerificationEmail,
+} from "../services/emailVerificationService.js";
 import { googleAuthService } from "../services/googleAuthService.js";
-import { verifyEmailSchema, googleAuthSchema } from "../validators/authValidator.js";
+import {
+  verifyEmailSchema,
+  googleAuthSchema,
+} from "../validators/authValidator.js";
 import { getRedis } from "../config/redis.js";
 
 export const sendSignupCode = async (req, res, next) => {
@@ -33,7 +40,7 @@ export const verifyEmail = async (req, res, next) => {
     if (error) {
       return res.status(400).json({
         success: false,
-        message: error.details[0]?.message || "Invalid email",
+        message: error.details[0]?.message || "Invalid email address.",
       });
     }
 
@@ -44,9 +51,44 @@ export const verifyEmail = async (req, res, next) => {
       data,
     });
   } catch (err) {
-    res.status(400).json({
+    const status = err.message === "Email domain does not exist." ? 400 : 400;
+    res.status(status).json({
       success: false,
-      message: err.message || "Invalid email",
+      message: err.message || "Invalid email address.",
+    });
+  }
+};
+
+export const verifyEmailToken = async (req, res, next) => {
+  try {
+    const token = req.query?.token;
+    const data = await verifyEmailByToken(token);
+    res.json({
+      success: true,
+      message: data.message,
+    });
+  } catch (err) {
+    const isExpired = err.message === "Verification link has expired.";
+    res.status(isExpired ? 400 : 400).json({
+      success: false,
+      message: err.message || "Invalid verification link.",
+    });
+  }
+};
+
+export const resendVerification = async (req, res, next) => {
+  try {
+    const data = await resendVerificationEmail(req.body.email);
+    res.json({
+      success: true,
+      message: data.message,
+      data,
+    });
+  } catch (err) {
+    const isAlreadyVerified = err.message === "Email is already verified.";
+    res.status(isAlreadyVerified ? 400 : 400).json({
+      success: false,
+      message: err.message || "Could not resend verification email",
     });
   }
 };
@@ -116,6 +158,12 @@ export const login = async (req, res, next) => {
       data,
     });
   } catch (err) {
+    if (err.statusCode === 403) {
+      return res.status(403).json({
+        success: false,
+        message: err.message,
+      });
+    }
     next(err);
   }
 };
@@ -142,6 +190,12 @@ export const loginByType = (userType) => async (req, res, next) => {
       data,
     });
   } catch (err) {
+    if (err.statusCode === 403) {
+      return res.status(403).json({
+        success: false,
+        message: err.message,
+      });
+    }
     next(err);
   }
 };
@@ -156,6 +210,12 @@ export const magicLogin = async (req, res, next) => {
       data,
     });
   } catch (err) {
+    if (err.statusCode === 403) {
+      return res.status(403).json({
+        success: false,
+        message: err.message,
+      });
+    }
     if (err.message === "Invalid or expired login link") {
       return res.status(401).json({ success: false, message: err.message });
     }

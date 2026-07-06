@@ -1,3 +1,12 @@
+export function getEmailFrom() {
+  return (
+    process.env.EMAIL_FROM ||
+    process.env.SMTP_FROM ||
+    process.env.SMTP_USER ||
+    "noreply@fitnova.ai"
+  );
+}
+
 export function getEmailConfig() {
   return {
     host: process.env.SMTP_HOST,
@@ -5,7 +14,7 @@ export function getEmailConfig() {
     secure: process.env.SMTP_SECURE === "true",
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
-    from: process.env.SMTP_FROM || process.env.SMTP_USER || "noreply@fitnova.ai",
+    from: getEmailFrom(),
     fromName: process.env.SMTP_FROM_NAME || "FitNova AI",
   };
 }
@@ -17,4 +26,11 @@ export function isEmailConfigured() {
 
 export function getFrontendUrl() {
   return (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
+}
+
+export function getAppUrl() {
+  return (process.env.APP_URL || process.env.FRONTEND_URL || "http://localhost:5000").replace(
+    /\/$/,
+    "",
+  );
 }

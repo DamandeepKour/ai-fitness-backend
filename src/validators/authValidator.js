@@ -35,6 +35,10 @@ export const verifyEmailSchema = Joi.object({
   email: emailField,
 });
 
+export const resendVerificationSchema = Joi.object({
+  email: emailField,
+});
+
 export const googleAuthSchema = Joi.object({
   credential: Joi.string().trim().min(20).required().messages({
     "string.empty": "Google sign-in failed. Please try again.",

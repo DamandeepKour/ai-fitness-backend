@@ -1,7 +1,5 @@
 import dns from "dns/promises";
-
-const EMAIL_REGEX =
-  /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+import validator from "validator";
 
 const DISPOSABLE_DOMAINS = new Set([
   "mailinator.com",
@@ -33,11 +31,9 @@ export function normalizeEmail(value) {
 export function validateEmailFormat(email) {
   const normalized = normalizeEmail(email);
   if (!normalized) return "Email is required";
-  if (normalized.length > 254) return "Email is too long";
-  if (!EMAIL_REGEX.test(normalized)) return "Not a valid email address";
+  if (!validator.isEmail(normalized)) return "Invalid email address.";
 
   const [, domain] = normalized.split("@");
-  if (!domain || domain.length < 3) return "Not a valid email address";
   if (DISPOSABLE_DOMAINS.has(domain)) {
     return "Temporary or disposable email addresses are not allowed";
   }
@@ -45,35 +41,26 @@ export function validateEmailFormat(email) {
   return "";
 }
 
-async function domainAcceptsMail(domain) {
+export async function validateEmailMx(email) {
+  const normalized = normalizeEmail(email);
+  const domain = normalized.split("@")[1];
+
   try {
     const mxRecords = await dns.resolveMx(domain);
-    if (Array.isArray(mxRecords) && mxRecords.length > 0) return true;
-  } catch {
-    // fall through
+    if (!Array.isArray(mxRecords) || mxRecords.length === 0) {
+      throw new Error("Email domain does not exist.");
+    }
+  } catch (err) {
+    if (err.message === "Email domain does not exist.") throw err;
+    throw new Error("Email domain does not exist.");
   }
 
-  try {
-    const aRecords = await dns.resolve4(domain);
-    if (Array.isArray(aRecords) && aRecords.length > 0) return true;
-  } catch {
-    // fall through
-  }
-
-  return false;
+  return normalized;
 }
 
 export async function validateSignupEmail(email) {
   const formatError = validateEmailFormat(email);
   if (formatError) throw new Error(formatError);
 
-  const normalized = normalizeEmail(email);
-  const domain = normalized.split("@")[1];
-
-  const acceptsMail = await domainAcceptsMail(domain);
-  if (!acceptsMail) {
-    throw new Error("This email domain cannot receive mail. Use a real email address.");
-  }
-
-  return normalized;
+  return validateEmailMx(email);
 }
