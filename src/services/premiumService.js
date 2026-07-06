@@ -2,12 +2,15 @@ import db from "../config/db.js";
 import { getUserPlan } from "../repositories/planRepo.js";
 import { GROCERY_PARTNERS } from "../data/indianFoodCatalog.js";
 import {
+  getNotificationPrefsService,
+  updateNotificationPrefsService,
+} from "./notificationService.js";
+import {
   coachReviewsTable,
   groceryListsTable,
   householdMembersTable,
   householdsTable,
   labReportsTable,
-  notificationPrefsTable,
   wearableConnectionsTable,
 } from "../models/premiumModel.js";
 
@@ -56,53 +59,6 @@ function extractIngredientsFromPlan(dietPlan) {
 }
 
 // ─── Notifications / WhatsApp ───────────────────────────────────────────────
-
-export async function getNotificationPrefsService(userId) {
-  const conn = await db();
-  const [rows] = await conn.query(
-    `SELECT * FROM ${notificationPrefsTable} WHERE user_id = ?`,
-    [userId],
-  );
-
-  if (rows[0]) return rows[0];
-
-  await conn.query(
-    `INSERT INTO ${notificationPrefsTable} (user_id) VALUES (?)`,
-    [userId],
-  );
-
-  const [created] = await conn.query(
-    `SELECT * FROM ${notificationPrefsTable} WHERE user_id = ?`,
-    [userId],
-  );
-  return created[0];
-}
-
-export async function updateNotificationPrefsService(userId, data) {
-  const conn = await db();
-  await getNotificationPrefsService(userId);
-
-  const fields = [];
-  const values = [];
-  const allowed = ["whatsapp_enabled", "meal_reminders", "water_reminders", "coaching_tips", "quiet_start", "quiet_end"];
-
-  for (const key of allowed) {
-    if (data[key] !== undefined) {
-      fields.push(`${key} = ?`);
-      values.push(data[key]);
-    }
-  }
-
-  if (!fields.length) return getNotificationPrefsService(userId);
-
-  values.push(userId);
-  await conn.query(
-    `UPDATE ${notificationPrefsTable} SET ${fields.join(", ")} WHERE user_id = ?`,
-    values,
-  );
-
-  return getNotificationPrefsService(userId);
-}
 
 export async function sendWhatsAppReminderDemoService(userId) {
   const conn = await db();

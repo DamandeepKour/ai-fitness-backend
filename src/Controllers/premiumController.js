@@ -6,7 +6,6 @@ import {
   getFamilyPlanService,
   getGroceryListService,
   getLabReportsService,
-  getNotificationPrefsService,
   getPremiumOverviewService,
   getWearableStatusService,
   requestCoachReviewService,
@@ -14,8 +13,11 @@ import {
   sendWhatsAppReminderDemoService,
   submitLabReportService,
   updateCoachReviewService,
-  updateNotificationPrefsService,
 } from "../services/premiumService.js";
+import {
+  getNotificationPrefsService,
+  updateNotificationPrefsService,
+} from "../services/notificationService.js";
 
 export async function getPremiumOverview(req, res, next) {
   try {
