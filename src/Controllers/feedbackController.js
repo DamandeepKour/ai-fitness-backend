@@ -10,3 +10,15 @@ export const getAIFeedback = async (req, res) => {
       feedback,
     });
   };
+
+  // export const createAIFeedback = async (req, res) => {
+  //   const userId = req.user.id;
+  //   const { feedback } = req.body;
+
+  //   const newFeedback = await createAIFeedbackService(userId, feedback);
+
+  //   res.json({
+  //     success: true,
+  //     newFeedback,
+  //   });
+  // };
