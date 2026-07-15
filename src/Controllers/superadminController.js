@@ -21,6 +21,12 @@ import {
   getSuperadminUsersService,
 } from "../services/superadminService.js";
 import { updateUserService } from "../services/userService.js";
+import {
+  getTrafficHistoryService,
+  getTrafficLogsService,
+  getTrafficSummaryService,
+  getUserActivityService,
+} from "../services/trafficService.js";
 
 export async function getSuperadminAnalytics(req, res, next) {
   try {
@@ -212,6 +218,51 @@ export async function updateSupportTicketStatus(req, res, next) {
     if (err.message === "Invalid ticket status") {
       return res.status(400).json({ success: false, message: err.message });
     }
+    next(err);
+  }
+}
+
+export async function getTrafficSummary(req, res, next) {
+  try {
+    const data = await getTrafficSummaryService();
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getTrafficLogs(req, res, next) {
+  try {
+    const data = await getTrafficLogsService({
+      page: req.query.page,
+      limit: req.query.limit,
+      method: req.query.method,
+      status: req.query.status,
+      path: req.query.path,
+    });
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getTrafficHistory(req, res, next) {
+  try {
+    const data = await getTrafficHistoryService({ hours: req.query.hours });
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getUserActivity(req, res, next) {
+  try {
+    const data = await getUserActivityService({
+      page: req.query.page,
+      limit: req.query.limit,
+    });
+    res.json({ success: true, data });
+  } catch (err) {
     next(err);
   }
 }

@@ -11,6 +11,7 @@ import { syncPantryTable } from "./src/models/pantryModel.js";
 import { syncPremiumTables } from "./src/models/premiumModel.js";
 import { syncLoginTokenTable } from "./src/models/loginTokenModel.js";
 import { syncSignupVerificationTable } from "./src/models/signupVerificationModel.js";
+import { syncTrafficLogTable } from "./src/models/trafficLogModel.js";
 
 const syncSteps = [
   { name: "users", fn: syncUserTable },
@@ -25,6 +26,7 @@ const syncSteps = [
   { name: "premium", fn: syncPremiumTables },
   { name: "login_tokens", fn: syncLoginTokenTable },
   { name: "signup_verifications", fn: syncSignupVerificationTable },
+  { name: "api_request_logs", fn: syncTrafficLogTable },
 ];
 
 export default async function initDb() {

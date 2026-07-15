@@ -18,6 +18,10 @@ import {
   getSuperadminUserById,
   getSuperadminUsers,
   getSupportTickets,
+  getTrafficHistory,
+  getTrafficLogs,
+  getTrafficSummary,
+  getUserActivity,
   updateCoachReviewAdmin,
   updateSuperadminProfile,
   updateSupportTicketStatus,
@@ -50,6 +54,10 @@ async function requireSuperadmin(req, res, next) {
 
 router.use(authMiddleware, requireSuperadmin);
 
+router.get("/traffic/summary", getTrafficSummary);
+router.get("/traffic/logs", getTrafficLogs);
+router.get("/traffic/history", getTrafficHistory);
+router.get("/traffic/activity", getUserActivity);
 router.get("/analytics", getSuperadminAnalytics);
 router.get("/ai/analytics", getAIAnalytics);
 router.get("/ai/generated-meals", getAIGeneratedMeals);

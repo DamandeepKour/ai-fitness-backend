@@ -17,6 +17,7 @@ import cors from "cors";
 import initDb from "./initDb.js";
 import routes from "./src/routes/index.js";
 import errorHandler from "./src/middleware/errorHandler.js";
+import trafficMiddleware from "./src/middleware/trafficMiddleware.js";
 import { connectRedis } from "./src/config/redis.js";
 import { startVerificationCleanupJob } from "./src/jobs/verificationCleanupJob.js";
 
@@ -33,7 +34,7 @@ app.get("/health", async (req, res) => {
   res.json({ ok: true, service: "ai-fitness-backend" });
 });
 
-app.use("/api", routes);
+app.use("/api", trafficMiddleware, routes);
 app.use(errorHandler);
 
 // Render sets PORT automatically — do not hardcode 2002 unless you set it in Render env.
