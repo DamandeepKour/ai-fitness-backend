@@ -13,12 +13,14 @@ process.on("unhandledRejection", (reason) => {
 });
 
 import express from "express";
+import http from "http";
 import cors from "cors";
 import initDb from "./initDb.js";
 import routes from "./src/routes/index.js";
 import errorHandler from "./src/middleware/errorHandler.js";
 import trafficMiddleware from "./src/middleware/trafficMiddleware.js";
 import { connectRedis } from "./src/config/redis.js";
+import { initSocket } from "./src/config/socket.js";
 import { startVerificationCleanupJob } from "./src/jobs/verificationCleanupJob.js";
 
 const app = express();
@@ -53,8 +55,12 @@ const startServer = async () => {
     await connectRedis();
     startVerificationCleanupJob();
 
-    app.listen(PORT, "0.0.0.0", () => {
+    const httpServer = http.createServer(app);
+    initSocket(httpServer);
+
+    httpServer.listen(PORT, "0.0.0.0", () => {
       console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`🔌 WebSocket ready at /socket.io`);
     });
   } catch (error) {
     console.error("❌ Failed to start server:", error);

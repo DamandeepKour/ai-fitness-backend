@@ -53,10 +53,20 @@ export async function insertTrafficLog({
   userAgent = null,
 }) {
   const conn = await db();
-  await conn.query(
+  const [result] = await conn.query(
     `INSERT INTO ${trafficLogTable}
       (user_id, method, path, status_code, duration_ms, ip, user_agent)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
     [userId, method, path, statusCode, durationMs, ip, userAgent?.slice(0, 500) ?? null],
   );
+
+  const [rows] = await conn.query(
+    `SELECT id, created_at FROM ${trafficLogTable} WHERE id = ? LIMIT 1`,
+    [result.insertId],
+  );
+
+  return {
+    id: result.insertId,
+    createdAt: rows[0]?.created_at ?? new Date(),
+  };
 }

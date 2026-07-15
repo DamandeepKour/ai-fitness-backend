@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { insertTrafficLog } from "../models/trafficLogModel.js";
+import { broadcastTrafficUpdate } from "../services/activityBroadcastService.js";
 
 const SKIP_PATHS = new Set(["/", "/health"]);
 
@@ -43,9 +44,23 @@ export default function trafficMiddleware(req, res, next) {
       durationMs,
       ip: getClientIp(req),
       userAgent: req.headers["user-agent"] ?? null,
-    }).catch((err) => {
-      console.error("Traffic log insert failed:", err.message);
-    });
+    })
+      .then((saved) =>
+        broadcastTrafficUpdate({
+          logId: saved.id,
+          userId,
+          method: req.method,
+          path,
+          statusCode: res.statusCode,
+          durationMs,
+          ip: getClientIp(req),
+          userAgent: req.headers["user-agent"] ?? null,
+          createdAt: saved.createdAt,
+        }),
+      )
+      .catch((err) => {
+        console.error("Traffic log insert failed:", err.message);
+      });
   });
 
   next();
