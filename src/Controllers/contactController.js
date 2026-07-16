@@ -2,6 +2,7 @@ import { submitContactMessage } from "../services/contactService.js";
 
 export const submitContact = async (req, res, next) => {
   try {
+    
     const data = await submitContactMessage(req.body);
 
     res.status(201).json({
