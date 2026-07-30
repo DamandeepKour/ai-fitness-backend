@@ -48,7 +48,8 @@ const createPlanService = async (userId, data) => {
       if (cached) return JSON.parse(cached);
     }
 
-    const aiData = await generateAIPlan(planInput);
+    const aiResult = await generateAIPlan(planInput, { userId });
+    const { aiMeta, ...aiData } = aiResult;
 
     await savePlan(userId, aiData);
 
