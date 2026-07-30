@@ -4,10 +4,12 @@ import {
   getDailySummary,
 } from "../Controllers/dailyLogController.js";
 import authMiddleware from "../middleware/authMiddleware.js";
+import { validate } from "../middleware/validate.js";
+import { addDailyLogSchema, dailySummaryQuerySchema } from "../validators/dailyLogValidator.js";
 
 const router = express.Router();
 
-router.post("/add", authMiddleware, addDailyLog);
-router.get("/summary", authMiddleware, getDailySummary);
+router.post("/add", authMiddleware, validate(addDailyLogSchema), addDailyLog);
+router.get("/summary", authMiddleware, validate(dailySummaryQuerySchema, "query"), getDailySummary);
 
 export default router;

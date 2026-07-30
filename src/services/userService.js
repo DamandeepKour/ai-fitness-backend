@@ -1,6 +1,7 @@
 import db from "../config/db.js";
 import bcrypt from "bcryptjs";
 import { saveUserHistory } from "../repositories/userHistoryRepo.js";
+import { AppError } from "../utils/AppError.js";
 
 const safeUserFields = `
   id, name, email, user_type, mobile_number, country_code, language, age, gender,
@@ -71,7 +72,7 @@ export const updateUserService = async (userId, data) => {
   }
 
   if (fields.length === 0) {
-    throw new Error("No valid fields provided");
+    throw new AppError("No valid fields provided", 400);
   }
 
   fields.push("last_updated_at = NOW()");

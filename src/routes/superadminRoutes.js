@@ -1,6 +1,7 @@
 import express from "express";
 import authMiddleware from "../middleware/authMiddleware.js";
 import db from "../config/db.js";
+import { AppError } from "../utils/AppError.js";
 import {
   getAIAnalytics,
   getAIQualityAnalytics,
@@ -32,7 +33,7 @@ const router = express.Router();
 async function requireSuperadmin(req, res, next) {
   try {
     if (!req.user?.id) {
-      return res.status(401).json({ success: false, message: "Unauthorized" });
+      throw new AppError("Unauthorized", 401);
     }
 
     const conn = await db();
@@ -40,10 +41,7 @@ async function requireSuperadmin(req, res, next) {
     const actor = rows[0];
 
     if (!actor || actor.user_type !== "superadmin") {
-      return res.status(403).json({
-        success: false,
-        message: "Only superadmin can access this endpoint",
-      });
+      throw new AppError("Only superadmin can access this endpoint", 403);
     }
 
     return next();

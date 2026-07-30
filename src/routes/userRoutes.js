@@ -4,11 +4,12 @@ import { getNotificationPrefs, updateNotificationPrefs } from "../Controllers/no
 import authMiddleware from "../middleware/authMiddleware.js";
 import { validate } from "../middleware/validate.js";
 import { updateNotificationPrefsSchema } from "../validators/notificationValidator.js";
+import { createUserSchema, updateUserProfileSchema } from "../validators/userValidator.js";
 
 const router = express.Router();
 
-router.post("/", createUser);
-router.put("/update", authMiddleware, updateUser);
+router.post("/", validate(createUserSchema), createUser);
+router.put("/update", authMiddleware, validate(updateUserProfileSchema), updateUser);
 router.get("/all-user", authMiddleware,getUsers); 
 router.get("/me", authMiddleware, getCurrentUser);
 router.get("/history/me", authMiddleware, getUserHistory);

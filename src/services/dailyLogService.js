@@ -1,5 +1,6 @@
 import { saveDailyLog, getDailyLogs } from "../repositories/dailyLogRepo.js";
 import { getUserPlan } from "../repositories/planRepo.js";
+import { AppError } from "../utils/AppError.js";
 
 const DAILY_LOG_MEAL_TYPES = new Set([
   "morning_drink",
@@ -32,8 +33,9 @@ const normalizeMealType = (mealType = "") => {
     return canonical;
   }
 
-  const error = new Error(`Unsupported meal type: ${mealType}`);
-  error.statusCode = 400;
+  const error = new AppError(`Unsupported meal type: ${mealType}`, 400, [
+    { field: "meal_type", message: "meal_type must be a supported meal slot" },
+  ]);
   throw error;
 };
 

@@ -1,111 +1,66 @@
-import { createUserService, updateUserService,getUsersService, getUserByIdService, getUserHistoryService } from "../services/userService.js";
+import { createUserService, updateUserService, getUsersService, getUserByIdService, getUserHistoryService } from "../services/userService.js";
+import { AppError } from "../utils/AppError.js";
+import { asyncHandler } from "../middleware/asyncHandler.js";
 
-// ✅ Create User
-export const createUser = async (req, res, next) => {
-    try {
-       const data = await createUserService(req.body);
-  
-      res.json({
-        message: "User created",
-        ...data,
-      });
-    } catch (err) {
-      next(err);
-    }
-  };
+export const createUser = asyncHandler(async (req, res) => {
+  const data = await createUserService(req.body);
 
-  //update user
-  export const updateUser = async (req, res, next) => {
-    try {
-      const userId = req.user.id; 
-  
-      const result = await updateUserService(userId, req.body);
-  
-      if (result.affectedRows === 0) {
-        return res.status(404).json({
-          success: false,
-          message: "User not found or no changes made",
-        });
-      }
-  
-      res.json({
-        success: true,
-        message: "User updated successfully",
-        data: result.user,
-      });
-    } catch (err) {
-      next(err);
-    }
-  };
+  res.json({
+    message: "User created",
+    ...data,
+  });
+});
 
-//Get All Users
-export const getUsers = async (req, res, next) => {
-  try {
-    const data = await getUsersService();
+export const updateUser = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const result = await updateUserService(userId, req.body);
 
-    res.json(data);
-  } catch (err) {
-    next(err);
+  res.json({
+    success: true,
+    message: "User updated successfully",
+    data: result.user,
+  });
+});
+
+export const getUsers = asyncHandler(async (req, res) => {
+  const data = await getUsersService();
+  res.json(data);
+});
+
+export const getCurrentUser = asyncHandler(async (req, res) => {
+  const data = await getUserByIdService(req.user.id);
+
+  if (!data) {
+    throw new AppError("User not found", 404);
   }
-};
 
-// Get logged-in user
-export const getCurrentUser = async (req, res, next) => {
-  try {
-    const data = await getUserByIdService(req.user.id);
+  res.json({ success: true, data });
+});
 
-    if (!data) {
-      return res.status(404).json({ success: false, message: "User not found" });
-    }
+export const getUserById = asyncHandler(async (req, res) => {
+  const data = await getUserByIdService(req.params.id);
 
-    res.json({ success: true, data });
-  } catch (err) {
-    next(err);
+  if (!data) {
+    throw new AppError("User not found", 404);
   }
-};
 
-//Get User by ID
-export const getUserById = async (req, res, next) => {
-  try {
-    const data = await getUserByIdService(req.params.id);
+  res.json(data);
+});
 
-    if (!data) {
-      return res.status(404).json({ message: "User not found" });
-    }
+export const getUserHistory = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const { page = 1, limit = 10, field, from, to } = req.query;
 
-    res.json(data);
-  } catch (err) {
-    next(err);
-  }
-};
+  const result = await getUserHistoryService(userId, {
+    page: Number(page),
+    limit: Number(limit),
+    field,
+    from,
+    to,
+  });
 
-//get user history
-export const getUserHistory = async (req, res, next) => {
-  try {
-    const userId = req.user.id;
-
-    const {
-      page = 1,
-      limit = 10,
-      field,
-      from,
-      to,
-    } = req.query;
-
-    const result = await getUserHistoryService(userId, {
-      page: Number(page),
-      limit: Number(limit),
-      field,
-      from,
-      to,
-    });
-
-    res.json({
-      success: true,
-      ...result,
-    });
-
-  } catch (err) {
-    next(err);
-  }
-};
+  res.json({
+    success: true,
+    ...result,
+  });
+});

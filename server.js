@@ -17,6 +17,7 @@ import http from "http";
 import cors from "cors";
 import initDb from "./initDb.js";
 import routes from "./src/routes/index.js";
+import notFound from "./src/middleware/notFound.js";
 import errorHandler from "./src/middleware/errorHandler.js";
 import trafficMiddleware from "./src/middleware/trafficMiddleware.js";
 import { connectRedis } from "./src/config/redis.js";
@@ -37,6 +38,7 @@ app.get("/health", async (req, res) => {
 });
 
 app.use("/api", trafficMiddleware, routes);
+app.use(notFound);
 app.use(errorHandler);
 
 // Render sets PORT automatically — do not hardcode 2002 unless you set it in Render env.
