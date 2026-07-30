@@ -1,33 +1,50 @@
 // src/middleware/rateLimiter.js
 
 import rateLimit from "express-rate-limit";
+import { AI_RATE_LIMIT_CODE, AI_RATE_LIMIT_MESSAGE } from "../ai/utils/aiErrors.js";
 
-// 🔥 General API limiter
-export const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 min
-  max: 100,
-  message: {
+function rateLimitResponse(statusCode, message, code = "RATE_LIMIT") {
+  return {
     success: false,
-    message: "Too many requests, try again later",
+    statusCode,
+    message,
+    code,
+    details: null,
+  };
+}
+
+// General API limiter
+export const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json(
+      rateLimitResponse(429, "Too many requests. Please try again later."),
+    );
   },
 });
 
-// 🔥 Strict limiter for AI
+// Strict limiter for AI plan generation
 export const aiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
-  message: {
-    success: false,
-    message: "AI limit exceeded, upgrade plan",
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json(
+      rateLimitResponse(429, AI_RATE_LIMIT_MESSAGE, AI_RATE_LIMIT_CODE),
+    );
   },
 });
 
-// Contact form — prevent spam on public endpoint
 export const contactLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 10,
-  message: {
-    success: false,
-    message: "Too many messages sent. Please try again later.",
+  handler: (req, res) => {
+    res.status(429).json(
+      rateLimitResponse(429, "Too many messages sent. Please try again later."),
+    );
   },
 });

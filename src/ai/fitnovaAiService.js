@@ -5,6 +5,8 @@ import {
   extractTokenUsage,
 } from "../client/groqProvider.js";
 import { logAiMetadata } from "../metadata/logAiMetadata.js";
+import { isAiRateLimitError, normalizeAiProviderError } from "../utils/aiErrors.js";
+import { AppError } from "../../utils/AppError.js";
 
 function parseResponseContent(content, parseJson) {
   if (!parseJson) return content;
@@ -75,12 +77,33 @@ export async function runAiTask({
       },
     };
   } catch (err) {
-    lastError = err;
+    const normalizedError = err instanceof AppError
+      ? err
+      : normalizeAiProviderError(err);
+
+    lastError = normalizedError;
     attempts = AI_CONFIG.maxRetries + 1;
     const latencyMs = Date.now() - startedAt;
 
+    if (isAiRateLimitError(normalizedError)) {
+      await logAiMetadata({
+        userId,
+        feature,
+        promptVersion,
+        model,
+        status: AI_STATUS.ERROR,
+        latencyMs,
+        attempts,
+        usedFallback: false,
+        errorMessage: normalizedError.message,
+        metadata: { ...metadata, rateLimited: true },
+      });
+
+      throw normalizedError;
+    }
+
     if (typeof fallback === "function") {
-      const data = fallback(err);
+      const data = fallback(normalizedError);
 
       await logAiMetadata({
         userId,
@@ -91,7 +114,7 @@ export async function runAiTask({
         latencyMs,
         attempts,
         usedFallback: true,
-        errorMessage: err.message,
+        errorMessage: normalizedError.message,
         metadata: { ...metadata, fallback: true },
       });
 
@@ -104,7 +127,7 @@ export async function runAiTask({
           usedFallback: true,
           attempts,
           latencyMs,
-          error: err.message,
+          error: normalizedError.message,
         },
       };
     }
@@ -118,11 +141,11 @@ export async function runAiTask({
       latencyMs,
       attempts,
       usedFallback: false,
-      errorMessage: err.message,
+      errorMessage: normalizedError.message,
       metadata,
     });
 
-    throw err;
+    throw normalizedError;
   }
 }
 

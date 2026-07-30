@@ -1,5 +1,6 @@
 import Groq from "groq-sdk";
 import { AI_CONFIG } from "../config.js";
+import { isAiRateLimitError, normalizeAiProviderError } from "../utils/aiErrors.js";
 
 let groqClient = null;
 
@@ -64,6 +65,10 @@ export async function createChatCompletionWithRetry({
 
       return { response, attempts: attempt + 1 };
     } catch (err) {
+      if (isAiRateLimitError(err)) {
+        throw normalizeAiProviderError(err);
+      }
+
       lastError = err;
       if (attempt < maxRetries) {
         await sleep(retryDelayMs * (attempt + 1));

@@ -26,7 +26,11 @@ export default function errorHandler(err, req, res, next) {
     message = "Resource already exists";
   }
 
-  if (statusCode >= 500) {
+  if (statusCode === 429 || statusCode === 529) {
+    message = err.message || "Too many requests. Please try again later.";
+  }
+
+  if (statusCode >= 500 && statusCode !== 529) {
     console.error(err);
     if (process.env.NODE_ENV === "production") {
       message = "Internal server error";
@@ -40,6 +44,7 @@ export default function errorHandler(err, req, res, next) {
     success: false,
     statusCode,
     message,
+    code: err.code ?? null,
     details,
   });
 }
