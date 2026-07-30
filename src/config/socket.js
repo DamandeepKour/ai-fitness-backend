@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import { Server } from "socket.io";
-import db from "./db.js";
+import { isAdminRole, normalizeRole } from "../constants/roles.js";
+import { getUserRoleById } from "../repositories/roleRepository.js";
 
 let io = null;
 
@@ -29,18 +30,14 @@ export function initSocket(httpServer) {
       }
 
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const conn = await db();
-      const [rows] = await conn.query(
-        "SELECT id, user_type FROM users WHERE id = ? LIMIT 1",
-        [decoded.id],
-      );
-      const user = rows[0];
+      const role = await getUserRoleById(decoded.id);
 
-      if (!user || user.user_type !== "superadmin") {
+      if (!decoded.id || !isAdminRole(role)) {
         return next(new Error("Forbidden"));
       }
 
-      socket.data.userId = user.id;
+      socket.data.userId = decoded.id;
+      socket.data.userRole = normalizeRole(role);
       return next();
     } catch {
       return next(new Error("Unauthorized"));

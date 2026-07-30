@@ -1,7 +1,7 @@
 import express from "express";
 import authMiddleware from "../middleware/authMiddleware.js";
-import db from "../config/db.js";
-import { AppError } from "../utils/AppError.js";
+import { requirePermission, requireRole, requireSelfOrRole } from "../middleware/requireRole.js";
+import { ROLES, PERMISSIONS } from "../constants/roles.js";
 import {
   getAIAnalytics,
   getAIQualityAnalytics,
@@ -30,51 +30,41 @@ import {
 
 const router = express.Router();
 
-async function requireSuperadmin(req, res, next) {
-  try {
-    if (!req.user?.id) {
-      throw new AppError("Unauthorized", 401);
-    }
+const analytics = requirePermission(PERMISSIONS.ANALYTICS_READ);
+const usersManage = requirePermission(PERMISSIONS.USERS_MANAGE);
+const systemRead = requirePermission(PERMISSIONS.SYSTEM_READ);
+const coachReviews = requirePermission(PERMISSIONS.COACH_REVIEWS_MANAGE);
 
-    const conn = await db();
-    const [rows] = await conn.query("SELECT user_type FROM users WHERE id = ?", [req.user.id]);
-    const actor = rows[0];
+router.use(authMiddleware);
 
-    if (!actor || actor.user_type !== "superadmin") {
-      throw new AppError("Only superadmin can access this endpoint", 403);
-    }
+router.get("/traffic/summary", systemRead, getTrafficSummary);
+router.get("/traffic/logs", systemRead, getTrafficLogs);
+router.get("/traffic/history", systemRead, getTrafficHistory);
+router.get("/traffic/activity", systemRead, getUserActivity);
 
-    return next();
-  } catch (err) {
-    return next(err);
-  }
-}
+router.get("/analytics", analytics, getSuperadminAnalytics);
+router.get("/ai/analytics", analytics, getAIAnalytics);
+router.get("/ai/generated-meals", analytics, getAIGeneratedMeals);
+router.get("/business/analytics", analytics, getBusinessAnalytics);
+router.get("/health/analytics", analytics, getHealthAnalytics);
+router.get("/nutrition/analytics", analytics, getNutritionAnalytics);
+router.get("/funnel/analytics", analytics, getFunnelAnalytics);
+router.get("/retention/analytics", analytics, getRetentionAnalytics);
+router.get("/cohort/analytics", analytics, getCohortAnalytics);
+router.get("/ai/quality", analytics, getAIQualityAnalytics);
 
-router.use(authMiddleware, requireSuperadmin);
+router.get("/support/tickets", systemRead, getSupportTickets);
+router.patch("/support/tickets/:id", systemRead, updateSupportTicketStatus);
 
-router.get("/traffic/summary", getTrafficSummary);
-router.get("/traffic/logs", getTrafficLogs);
-router.get("/traffic/history", getTrafficHistory);
-router.get("/traffic/activity", getUserActivity);
-router.get("/analytics", getSuperadminAnalytics);
-router.get("/ai/analytics", getAIAnalytics);
-router.get("/ai/generated-meals", getAIGeneratedMeals);
-router.get("/business/analytics", getBusinessAnalytics);
-router.get("/health/analytics", getHealthAnalytics);
-router.get("/nutrition/analytics", getNutritionAnalytics);
-router.get("/funnel/analytics", getFunnelAnalytics);
-router.get("/retention/analytics", getRetentionAnalytics);
-router.get("/cohort/analytics", getCohortAnalytics);
-router.get("/ai/quality", getAIQualityAnalytics);
-router.get("/support/tickets", getSupportTickets);
-router.patch("/support/tickets/:id", updateSupportTicketStatus);
-router.get("/coach-reviews", getCoachReviewQueue);
-router.patch("/coach-reviews/:id", updateCoachReviewAdmin);
-router.get("/me", getSuperadminMe);
-router.put("/profile", updateSuperadminProfile);
-router.get("/users", getSuperadminUsers);
-router.get("/users/logins", getSuperadminUsers);
-router.get("/users/complete-profiles", getCompleteProfileUsers);
-router.get("/users/:id", getSuperadminUserById);
+router.get("/coach-reviews", coachReviews, getCoachReviewQueue);
+router.patch("/coach-reviews/:id", coachReviews, updateCoachReviewAdmin);
+
+router.get("/me", requireRole(ROLES.ADMIN), getSuperadminMe);
+router.put("/profile", requireRole(ROLES.ADMIN), updateSuperadminProfile);
+
+router.get("/users", usersManage, getSuperadminUsers);
+router.get("/users/logins", usersManage, getSuperadminUsers);
+router.get("/users/complete-profiles", usersManage, getCompleteProfileUsers);
+router.get("/users/:id", usersManage, getSuperadminUserById);
 
 export default router;

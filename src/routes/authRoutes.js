@@ -33,8 +33,12 @@ router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
 router.post("/superadmin/signup", signupByType("superadmin"));
 router.post("/superadmin/login", loginByType("superadmin"));
+router.post("/admin/signup", signupByType("admin"));
+router.post("/admin/login", loginByType("admin"));
 router.post("/staff/signup", signupByType("staff"));
 router.post("/staff/login", loginByType("staff"));
+router.post("/coach/signup", signupByType("coach"));
+router.post("/coach/login", loginByType("coach"));
 router.post("/logout", authMiddleware, logout);
 
 export default router;

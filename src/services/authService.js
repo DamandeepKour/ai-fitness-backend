@@ -15,13 +15,13 @@ import {
 } from "../repositories/userRepository.js";
 import { createAndSendVerificationToken } from "./emailVerificationService.js";
 
-const ALLOWED_USER_TYPES = new Set(["user", "staff", "superadmin"]);
+import { ROLES, normalizeRole, roleMatches, isAllowedUserType } from "../constants/roles.js";
 const PASSWORD_RESET_TOKEN_BYTES = 32;
 const PASSWORD_RESET_EXPIRES_MINUTES = Number(process.env.PASSWORD_RESET_EXPIRES_MINUTES || 30);
 
 function normalizeUserType(value) {
-  const next = String(value || "user").toLowerCase().trim();
-  return ALLOWED_USER_TYPES.has(next) ? next : "user";
+  const next = normalizeRole(value || ROLES.USER);
+  return isAllowedUserType(next) ? next : ROLES.USER;
 }
 
 function sanitizeUser(user) {
@@ -138,7 +138,7 @@ export const loginService = async (data, options = {}) => {
 
   const isMatch = await bcrypt.compare(data.password, user.password);
   if (!isMatch) throw new Error("Invalid credentials");
-  if (requiredUserType && user.user_type !== requiredUserType) {
+  if (requiredUserType && !roleMatches(user.user_type, [requiredUserType])) {
     throw new Error(`This login is only allowed for ${requiredUserType} accounts`);
   }
 
