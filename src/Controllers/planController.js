@@ -32,6 +32,11 @@ export const generatePlan = asyncHandler(async (req, res) => {
       status: "success",
       ...common,
     });
+    logAction({
+      action: AUDIT_ACTIONS.PLAN_GENERATION,
+      status: "success",
+      ...common,
+    });
 
     res.json({
       success: true,

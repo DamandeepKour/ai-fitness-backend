@@ -10,6 +10,9 @@ import {
   getCoachReviewQueue,
   getCohortAnalytics,
   getCompleteProfileUsers,
+  getFitnovaAnalyticsMetric,
+  getFitnovaAnalyticsOverview,
+  getFitnovaAiUsageAnalytics,
   getFunnelAnalytics,
   getHealthAnalytics,
   getNutritionAnalytics,
@@ -43,6 +46,9 @@ router.get("/traffic/history", systemRead, getTrafficHistory);
 router.get("/traffic/activity", systemRead, getUserActivity);
 
 router.get("/analytics", analytics, getSuperadminAnalytics);
+router.get("/analytics/overview", analytics, getFitnovaAnalyticsOverview);
+router.get("/analytics/ai-usage", analytics, getFitnovaAiUsageAnalytics);
+router.get("/analytics/:metric", analytics, getFitnovaAnalyticsMetric);
 router.get("/ai/analytics", analytics, getAIAnalytics);
 router.get("/ai/generated-meals", analytics, getAIGeneratedMeals);
 router.get("/business/analytics", analytics, getBusinessAnalytics);

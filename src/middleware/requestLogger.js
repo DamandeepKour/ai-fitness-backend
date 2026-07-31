@@ -1,4 +1,5 @@
 import { logger } from "../config/logger.js";
+import { trackUserActivity } from "../models/mongo/analyticsEventService.js";
 
 /**
  * Structured HTTP access log for every API request (requestId, userId, route, latency, status).
@@ -11,11 +12,12 @@ export default function requestLoggerMiddleware(req, res, next) {
     const route = req.originalUrl?.split("?")[0] || req.path;
     const statusCode = res.statusCode;
     const status = statusCode >= 500 ? "error" : statusCode >= 400 ? "failure" : "success";
+    const userId = req.user?.id ?? null;
 
     const payload = {
       type: "http",
       requestId: req.requestId ?? null,
-      userId: req.user?.id ?? null,
+      userId,
       route,
       method: req.method,
       latencyMs,
@@ -29,6 +31,14 @@ export default function requestLoggerMiddleware(req, res, next) {
       logger.warn(payload, `${req.method} ${route} ${statusCode}`);
     } else {
       logger.info(payload, `${req.method} ${route} ${statusCode}`);
+    }
+
+    if (userId && statusCode < 400) {
+      trackUserActivity({
+        userId,
+        requestId: req.requestId ?? null,
+        route,
+      });
     }
   });
 

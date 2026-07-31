@@ -28,6 +28,11 @@ import {
   getUserActivityService,
 } from "../services/trafficService.js";
 import { AUDIT_ACTIONS, logAction } from "../utils/auditLog.js";
+import {
+  getFitnovaAnalyticsOverviewService,
+  getFitnovaAiUsageService,
+  getFitnovaMetricService,
+} from "../services/fitnovaAnalyticsService.js";
 
 function logAdminAction(req, {
   status = "success",
@@ -50,6 +55,34 @@ function logAdminAction(req, {
     },
   });
 }
+
+export async function getFitnovaAnalyticsOverview(req, res, next) {
+  try {
+    const data = await getFitnovaAnalyticsOverviewService(req.query);
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getFitnovaAiUsageAnalytics(req, res, next) {
+  try {
+    const data = await getFitnovaAiUsageService(req.query);
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getFitnovaAnalyticsMetric(req, res, next) {
+  try {
+    const data = await getFitnovaMetricService(req.params.metric, req.query);
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function getSuperadminAnalytics(req, res, next) {
   try {
     const data = await getSuperadminAnalyticsService();

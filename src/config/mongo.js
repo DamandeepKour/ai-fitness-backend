@@ -13,7 +13,7 @@ export function isMongoReady() {
 
 /**
  * Connect to MongoDB when MONGODB_URI is set (optional — app runs without it).
- * Used for AI audit log persistence.
+ * Used for AI audit logs and FitNova analytics aggregations.
  */
 export async function connectMongo() {
   const uri = process.env.MONGODB_URI?.trim();
