@@ -1,10 +1,12 @@
 import { addDailyLogService, getDailySummaryService } from "../services/dailyLogService.js";
 import { isValidYmd, serverCalendarYmd } from "../utils/localDate.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
+import { AUDIT_ACTIONS, logAction } from "../utils/auditLog.js";
 
 export const addDailyLog = asyncHandler(async (req, res) => {
   const userId = req.user.id;
   const logDate = isValidYmd(req.body.log_date) ? req.body.log_date : serverCalendarYmd();
+  const startedAt = Date.now();
 
   const payload = {
     user_id: userId,
@@ -12,22 +14,50 @@ export const addDailyLog = asyncHandler(async (req, res) => {
     log_date: logDate,
   };
 
-  const result = await addDailyLogService(payload);
+  try {
+    const result = await addDailyLogService(payload);
+    const latencyMs = Date.now() - startedAt;
 
-  res.json({
-    success: true,
-    message: result.inserted ? "Meal logged" : "Meal saved",
-    data: {
-      id: result.id,
-      meal_type: result.meal_type || payload.meal_type,
-      food_name: payload.food_name,
-      calories: payload.calories,
-      protein: payload.protein,
-      carbs: payload.carbs,
-      fat: payload.fat,
-      log_date: payload.log_date,
-    },
-  });
+    logAction({
+      action: AUDIT_ACTIONS.MEAL_LOG_CREATE,
+      status: "success",
+      req,
+      userId,
+      latencyMs,
+      meta: {
+        logId: result.id,
+        mealType: result.meal_type || payload.meal_type,
+        logDate: payload.log_date,
+        inserted: Boolean(result.inserted),
+      },
+    });
+
+    res.json({
+      success: true,
+      message: result.inserted ? "Meal logged" : "Meal saved",
+      data: {
+        id: result.id,
+        meal_type: result.meal_type || payload.meal_type,
+        food_name: payload.food_name,
+        calories: payload.calories,
+        protein: payload.protein,
+        carbs: payload.carbs,
+        fat: payload.fat,
+        log_date: payload.log_date,
+      },
+    });
+  } catch (err) {
+    logAction({
+      action: AUDIT_ACTIONS.MEAL_LOG_CREATE,
+      status: "error",
+      req,
+      userId,
+      latencyMs: Date.now() - startedAt,
+      message: err.message,
+      meta: { mealType: payload.meal_type, logDate: payload.log_date },
+    });
+    throw err;
+  }
 });
 
 export const getDailySummary = asyncHandler(async (req, res) => {

@@ -17,6 +17,7 @@ import {
   googleAuthSchema,
 } from "../validators/authValidator.js";
 import { getRedis } from "../config/redis.js";
+import { AUDIT_ACTIONS, logAction } from "../utils/auditLog.js";
 
 export const sendSignupCode = async (req, res, next) => {
   try {
@@ -104,12 +105,26 @@ export const googleAuth = async (req, res, next) => {
     }
 
     const data = await googleAuthService(req.body.credential);
+    logAction({
+      action: data.isNewUser ? AUDIT_ACTIONS.SIGNUP : AUDIT_ACTIONS.LOGIN,
+      status: "success",
+      req,
+      userId: data?.user?.id ?? null,
+      meta: { method: "google", isNewUser: Boolean(data.isNewUser) },
+    });
     res.json({
       success: true,
       message: data.isNewUser ? "Account created with Google" : "Google login successful",
       data,
     });
   } catch (err) {
+    logAction({
+      action: AUDIT_ACTIONS.LOGIN,
+      status: "failure",
+      req,
+      message: err.message,
+      meta: { method: "google" },
+    });
     const status = err.message?.includes("not configured") ? 503 : 401;
     res.status(status).json({
       success: false,
@@ -123,12 +138,27 @@ export const signup = async (req, res, next) => {
   try {
     const data = await signupService(req.body, { userType: "user" });
 
+    logAction({
+      action: AUDIT_ACTIONS.SIGNUP,
+      status: "success",
+      req,
+      userId: data?.user?.id ?? data?.id ?? null,
+      meta: { userType: "user", email: data?.user?.email ?? req.body?.email },
+    });
+
     res.json({
       success: true,
       message: data.message || "User registered successfully",
       data,
     });
   } catch (err) {
+    logAction({
+      action: AUDIT_ACTIONS.SIGNUP,
+      status: "failure",
+      req,
+      message: err.message,
+      meta: { userType: "user", email: req.body?.email },
+    });
     if (
       err.message?.includes("email") ||
       err.message?.includes("Email") ||
@@ -152,12 +182,27 @@ export const login = async (req, res, next) => {
   try {
     const data = await loginService(req.body);
 
+    logAction({
+      action: AUDIT_ACTIONS.LOGIN,
+      status: "success",
+      req,
+      userId: data?.user?.id ?? null,
+      meta: { userType: data?.user?.user_type ?? "user", method: "password" },
+    });
+
     res.json({
       success: true,
       message: "Login successful",
       data,
     });
   } catch (err) {
+    logAction({
+      action: AUDIT_ACTIONS.LOGIN,
+      status: "failure",
+      req,
+      message: err.message,
+      meta: { method: "password", email: req.body?.email },
+    });
     if (err.statusCode === 403) {
       return res.status(403).json({
         success: false,
@@ -171,12 +216,26 @@ export const login = async (req, res, next) => {
 export const signupByType = (userType) => async (req, res, next) => {
   try {
     const data = await signupService(req.body, { userType });
+    logAction({
+      action: AUDIT_ACTIONS.SIGNUP,
+      status: "success",
+      req,
+      userId: data?.user?.id ?? data?.id ?? null,
+      meta: { userType, email: data?.user?.email ?? req.body?.email },
+    });
     res.json({
       success: true,
       message: `${userType} registered successfully`,
       data,
     });
   } catch (err) {
+    logAction({
+      action: AUDIT_ACTIONS.SIGNUP,
+      status: "failure",
+      req,
+      message: err.message,
+      meta: { userType, email: req.body?.email },
+    });
     next(err);
   }
 };
@@ -184,12 +243,26 @@ export const signupByType = (userType) => async (req, res, next) => {
 export const loginByType = (userType) => async (req, res, next) => {
   try {
     const data = await loginService(req.body, { requiredUserType: userType });
+    logAction({
+      action: AUDIT_ACTIONS.LOGIN,
+      status: "success",
+      req,
+      userId: data?.user?.id ?? null,
+      meta: { userType, method: "password" },
+    });
     res.json({
       success: true,
       message: `${userType} login successful`,
       data,
     });
   } catch (err) {
+    logAction({
+      action: AUDIT_ACTIONS.LOGIN,
+      status: "failure",
+      req,
+      message: err.message,
+      meta: { userType, method: "password", email: req.body?.email },
+    });
     if (err.statusCode === 403) {
       return res.status(403).json({
         success: false,
@@ -204,12 +277,26 @@ export const magicLogin = async (req, res, next) => {
   try {
     const token = req.body?.token || req.query?.token;
     const data = await magicLoginService(token);
+    logAction({
+      action: AUDIT_ACTIONS.LOGIN,
+      status: "success",
+      req,
+      userId: data?.user?.id ?? null,
+      meta: { method: "magic_link" },
+    });
     res.json({
       success: true,
       message: "Login successful",
       data,
     });
   } catch (err) {
+    logAction({
+      action: AUDIT_ACTIONS.LOGIN,
+      status: "failure",
+      req,
+      message: err.message,
+      meta: { method: "magic_link" },
+    });
     if (err.statusCode === 403) {
       return res.status(403).json({
         success: false,

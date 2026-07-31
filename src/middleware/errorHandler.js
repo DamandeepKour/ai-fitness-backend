@@ -1,4 +1,6 @@
 import { formatJoiDetails } from "../utils/formatJoiDetails.js";
+import { logger } from "../config/logger.js";
+import { getRequestContext } from "../context/requestContext.js";
 
 export default function errorHandler(err, req, res, next) {
   if (res.headersSent) {
@@ -30,14 +32,27 @@ export default function errorHandler(err, req, res, next) {
     message = err.message || "Too many requests. Please try again later.";
   }
 
+  const ctx = getRequestContext();
+  const requestId = req.requestId ?? ctx.requestId ?? null;
+  const logPayload = {
+    type: "error",
+    requestId,
+    userId: req.user?.id ?? ctx.userId ?? null,
+    route: req.originalUrl?.split("?")[0] || req.path,
+    method: req.method,
+    statusCode,
+    code: err.code ?? null,
+    err: statusCode >= 500 ? err.stack || err.message : err.message,
+  };
+
   if (statusCode >= 500 && statusCode !== 529) {
-    console.error(err);
+    logger.error(logPayload, message);
     if (process.env.NODE_ENV === "production") {
       message = "Internal server error";
       details = null;
     }
   } else {
-    console.error(`[${statusCode}] ${message}`);
+    logger.warn(logPayload, message);
   }
 
   res.status(statusCode).json({
@@ -46,5 +61,6 @@ export default function errorHandler(err, req, res, next) {
     message,
     code: err.code ?? null,
     details,
+    requestId,
   });
 }

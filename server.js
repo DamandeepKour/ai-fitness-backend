@@ -4,12 +4,17 @@ dotenv.config();
 import { hydrateDbEnvFromProvider } from "./src/config/db.js";
 hydrateDbEnvFromProvider();
 
+import { logger } from "./src/config/logger.js";
+
 process.on("uncaughtException", (err) => {
-  console.error("❌ Uncaught Exception:", err);
+  logger.fatal({ type: "process", err: err.stack || err.message }, "Uncaught Exception");
 });
 
 process.on("unhandledRejection", (reason) => {
-  console.error("❌ Unhandled Rejection:", reason);
+  logger.error(
+    { type: "process", err: reason instanceof Error ? reason.stack || reason.message : String(reason) },
+    "Unhandled Rejection",
+  );
 });
 
 import express from "express";
@@ -20,7 +25,10 @@ import routes from "./src/routes/index.js";
 import notFound from "./src/middleware/notFound.js";
 import errorHandler from "./src/middleware/errorHandler.js";
 import trafficMiddleware from "./src/middleware/trafficMiddleware.js";
+import requestContextMiddleware from "./src/middleware/requestContext.js";
+import requestLoggerMiddleware from "./src/middleware/requestLogger.js";
 import { connectRedis } from "./src/config/redis.js";
+import { connectMongo } from "./src/config/mongo.js";
 import { initSocket } from "./src/config/socket.js";
 import { startVerificationCleanupJob } from "./src/jobs/verificationCleanupJob.js";
 
@@ -31,6 +39,7 @@ app.set("trust proxy", 1);
 
 app.use(cors());
 app.use(express.json());
+app.use(requestContextMiddleware);
 
 app.get("/", (req, res) => {
   res.send("API is running 🚀");
@@ -40,7 +49,7 @@ app.get("/health", async (req, res) => {
   res.json({ ok: true, service: "ai-fitness-backend" });
 });
 
-app.use("/api", trafficMiddleware, routes);
+app.use("/api", requestLoggerMiddleware, trafficMiddleware, routes);
 app.use(notFound);
 app.use(errorHandler);
 
@@ -49,26 +58,31 @@ const PORT = Number(process.env.PORT) || 5000;
 
 const startServer = async () => {
   try {
-    console.log("⏳ Starting server...");
-    console.log("NODE_ENV:", process.env.NODE_ENV || "development");
-    console.log("DB_HOST:", process.env.DB_HOST?.trim() || "(not set)");
-    console.log("MYSQL_URL set:", Boolean(process.env.MYSQL_URL?.trim()));
-    console.log("MYSQL_PUBLIC_URL set:", Boolean(process.env.MYSQL_PUBLIC_URL?.trim()));
-    console.log("REDIS_URL set:", Boolean(process.env.REDIS_URL?.trim()));
+    logger.info({ type: "startup" }, "Starting server...");
+    logger.info({
+      type: "startup",
+      nodeEnv: process.env.NODE_ENV || "development",
+      dbHost: process.env.DB_HOST?.trim() || null,
+      mysqlUrl: Boolean(process.env.MYSQL_URL?.trim()),
+      mysqlPublicUrl: Boolean(process.env.MYSQL_PUBLIC_URL?.trim()),
+      redisUrl: Boolean(process.env.REDIS_URL?.trim()),
+      mongodbUri: Boolean(process.env.MONGODB_URI?.trim()),
+    }, "Environment summary");
 
     await initDb();
     await connectRedis();
+    await connectMongo();
     startVerificationCleanupJob();
 
     const httpServer = http.createServer(app);
     initSocket(httpServer);
 
     httpServer.listen(PORT, "0.0.0.0", () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`🔌 WebSocket ready at /socket.io`);
+      logger.info({ type: "startup", port: PORT }, `Server running on port ${PORT}`);
+      logger.info({ type: "startup" }, "WebSocket ready at /socket.io");
     });
   } catch (error) {
-    console.error("❌ Failed to start server:", error);
+    logger.fatal({ type: "startup", err: error.stack || error.message }, "Failed to start server");
     process.exit(1);
   }
 };

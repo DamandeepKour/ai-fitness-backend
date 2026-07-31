@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import { insertTrafficLog } from "../models/trafficLogModel.js";
 import { broadcastTrafficUpdate } from "../services/activityBroadcastService.js";
+import { logger } from "../config/logger.js";
 
 const SKIP_PATHS = new Set(["/", "/health"]);
 
@@ -29,7 +30,7 @@ export default function trafficMiddleware(req, res, next) {
     return next();
   }
 
-  const startedAt = Date.now();
+  const startedAt = req.startedAt || Date.now();
   const userId = extractUserId(req);
 
   res.on("finish", () => {
@@ -37,7 +38,7 @@ export default function trafficMiddleware(req, res, next) {
     const path = req.originalUrl?.split("?")[0] || req.path;
 
     insertTrafficLog({
-      userId,
+      userId: req.user?.id ?? userId,
       method: req.method,
       path,
       statusCode: res.statusCode,
@@ -48,7 +49,7 @@ export default function trafficMiddleware(req, res, next) {
       .then((saved) =>
         broadcastTrafficUpdate({
           logId: saved.id,
-          userId,
+          userId: req.user?.id ?? userId,
           method: req.method,
           path,
           statusCode: res.statusCode,
@@ -56,10 +57,14 @@ export default function trafficMiddleware(req, res, next) {
           ip: getClientIp(req),
           userAgent: req.headers["user-agent"] ?? null,
           createdAt: saved.createdAt,
+          requestId: req.requestId ?? null,
         }),
       )
       .catch((err) => {
-        console.error("Traffic log insert failed:", err.message);
+        logger.error(
+          { type: "traffic", err: err.message, requestId: req.requestId },
+          "Traffic log insert failed",
+        );
       });
   });
 

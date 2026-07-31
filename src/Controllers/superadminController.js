@@ -27,7 +27,29 @@ import {
   getTrafficSummaryService,
   getUserActivityService,
 } from "../services/trafficService.js";
+import { AUDIT_ACTIONS, logAction } from "../utils/auditLog.js";
 
+function logAdminAction(req, {
+  status = "success",
+  actionName,
+  targetId = null,
+  message = null,
+  meta = null,
+}) {
+  logAction({
+    action: AUDIT_ACTIONS.ADMIN_ACTION,
+    status,
+    req,
+    userId: req.user?.id ?? null,
+    message,
+    meta: {
+      adminAction: actionName,
+      actorRole: req.user?.user_type ?? null,
+      targetId,
+      ...meta,
+    },
+  });
+}
 export async function getSuperadminAnalytics(req, res, next) {
   try {
     const data = await getSuperadminAnalyticsService();
@@ -61,12 +83,23 @@ export async function getSuperadminMe(req, res, next) {
 export async function updateSuperadminProfile(req, res, next) {
   try {
     const result = await updateUserService(req.user.id, req.body);
+    logAdminAction(req, {
+      actionName: "update_profile",
+      targetId: req.user.id,
+      meta: { fields: Object.keys(req.body || {}) },
+    });
     res.json({
       success: true,
       message: "Profile updated successfully",
       data: result.user,
     });
   } catch (err) {
+    logAdminAction(req, {
+      status: "error",
+      actionName: "update_profile",
+      targetId: req.user?.id,
+      message: err.message,
+    });
     next(err);
   }
 }
@@ -199,10 +232,27 @@ export async function updateCoachReviewAdmin(req, res, next) {
   try {
     const data = await updateCoachReviewService(req.params.id, req.body);
     if (!data) {
+      logAdminAction(req, {
+        status: "failure",
+        actionName: "update_coach_review",
+        targetId: req.params.id,
+        message: "Review not found",
+      });
       return res.status(404).json({ success: false, message: "Review not found" });
     }
+    logAdminAction(req, {
+      actionName: "update_coach_review",
+      targetId: req.params.id,
+      meta: { fields: Object.keys(req.body || {}) },
+    });
     res.json({ success: true, data });
   } catch (err) {
+    logAdminAction(req, {
+      status: "error",
+      actionName: "update_coach_review",
+      targetId: req.params.id,
+      message: err.message,
+    });
     next(err);
   }
 }
@@ -211,10 +261,28 @@ export async function updateSupportTicketStatus(req, res, next) {
   try {
     const ticket = await updateSupportTicketStatusService(req.params.id, req.body.status);
     if (!ticket) {
+      logAdminAction(req, {
+        status: "failure",
+        actionName: "update_support_ticket",
+        targetId: req.params.id,
+        message: "Ticket not found",
+      });
       return res.status(404).json({ success: false, message: "Ticket not found" });
     }
+    logAdminAction(req, {
+      actionName: "update_support_ticket",
+      targetId: req.params.id,
+      meta: { status: req.body.status },
+    });
     res.json({ success: true, data: ticket });
   } catch (err) {
+    logAdminAction(req, {
+      status: "error",
+      actionName: "update_support_ticket",
+      targetId: req.params.id,
+      message: err.message,
+      meta: { status: req.body?.status },
+    });
     if (err.message === "Invalid ticket status") {
       return res.status(400).json({ success: false, message: err.message });
     }

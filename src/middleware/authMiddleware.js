@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { getRedis } from "../config/redis.js";
+import { getRequestContext } from "../context/requestContext.js";
 import { AppError } from "../utils/AppError.js";
 
 const authMiddleware = async (req, res, next) => {
@@ -22,6 +23,11 @@ const authMiddleware = async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
+
+    const ctx = getRequestContext();
+    if (ctx && decoded?.id != null) {
+      ctx.userId = decoded.id;
+    }
 
     next();
   } catch (err) {
