@@ -3,6 +3,13 @@ import { logger } from "../config/logger.js";
 import db from "../config/db.js";
 import AnalyticsEvent, { ANALYTICS_EVENT_TYPES } from "../models/mongo/analyticsEvent.js";
 import AiAuditLog from "../models/mongo/aiAuditLog.js";
+import {
+  analyticsAiUsageCacheKey,
+  analyticsOverviewCacheKey,
+  CACHE_TTL,
+  cacheGet,
+  cacheSet,
+} from "../config/cache.js";
 
 const DEFAULT_DAYS = 30;
 const MAX_DAYS = 90;
@@ -705,13 +712,22 @@ async function getMysqlOverview(from, to, days) {
 /**
  * FitNova admin analytics overview.
  * Prefers MongoDB aggregation pipelines; falls back to MySQL when Mongo is unavailable.
+ * Results are cached briefly for repeated admin dashboard loads.
  */
 export async function getFitnovaAnalyticsOverviewService(query = {}) {
   const { from, to, days } = parseDateRange(query);
+  const range = { from: from.toISOString(), to: to.toISOString(), days };
+  const cacheKey = analyticsOverviewCacheKey(range);
 
+  const cached = await cacheGet(cacheKey);
+  if (cached) {
+    return { ...cached, cached: true };
+  }
+
+  let data;
   if (isMongoReady()) {
     try {
-      return await getMongoOverview(from, to, days);
+      data = await getMongoOverview(from, to, days);
     } catch (err) {
       logger.error(
         { type: "analytics", err: err.message },
@@ -720,18 +736,31 @@ export async function getFitnovaAnalyticsOverviewService(query = {}) {
     }
   }
 
-  return getMysqlOverview(from, to, days);
+  if (!data) {
+    data = await getMysqlOverview(from, to, days);
+  }
+
+  await cacheSet(cacheKey, data, CACHE_TTL.analyticsOverview);
+  return { ...data, cached: false };
 }
 
 export async function getFitnovaAiUsageService(query = {}) {
   const { from, to, days } = parseDateRange(query);
+  const range = { from: from.toISOString(), to: to.toISOString(), days };
+  const cacheKey = analyticsAiUsageCacheKey(range);
 
+  const cached = await cacheGet(cacheKey);
+  if (cached) {
+    return { ...cached, cached: true };
+  }
+
+  let data;
   if (isMongoReady()) {
     try {
       const aiUsage = await aggregateAiUsage(from, to);
-      return {
+      data = {
         source: "mongodb",
-        range: { from: from.toISOString(), to: to.toISOString(), days },
+        range,
         ...aiUsage,
       };
     } catch (err) {
@@ -739,12 +768,17 @@ export async function getFitnovaAiUsageService(query = {}) {
     }
   }
 
-  const overview = await getMysqlOverview(from, to, days);
-  return {
-    source: "mysql",
-    range: overview.range,
-    ...overview.aiUsage,
-  };
+  if (!data) {
+    const overview = await getMysqlOverview(from, to, days);
+    data = {
+      source: "mysql",
+      range: overview.range,
+      ...overview.aiUsage,
+    };
+  }
+
+  await cacheSet(cacheKey, data, CACHE_TTL.analyticsAiUsage);
+  return { ...data, cached: false };
 }
 
 export async function getFitnovaMetricService(metric, query = {}) {

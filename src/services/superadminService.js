@@ -1,4 +1,10 @@
 import db from "../config/db.js";
+import {
+  CACHE_PREFIX,
+  CACHE_TTL,
+  cacheGet,
+  cacheSet,
+} from "../config/cache.js";
 
 function isFilled(column) {
   return `${column} IS NOT NULL AND TRIM(${column}) <> ''`;
@@ -13,6 +19,12 @@ function toCountMap(rows, key) {
 }
 
 export async function getSuperadminAnalyticsService() {
+  const cacheKey = CACHE_PREFIX.analyticsSuperadmin;
+  const cached = await cacheGet(cacheKey);
+  if (cached) {
+    return { ...cached, cached: true };
+  }
+
   const conn = await db();
 
   const [[totalRow]] = await conn.query("SELECT COUNT(*) AS totalSignups FROM users");
@@ -59,7 +71,7 @@ export async function getSuperadminAnalyticsService() {
      GROUP BY language`,
   );
 
-  return {
+  const data = {
     totalSignups: Number(totalRow.totalSignups || 0),
     activeUsers: Number(activeRow.activeUsers || 0),
     onboardingCompleted: Number(onboardingRow.onboardingCompleted || 0),
@@ -67,6 +79,9 @@ export async function getSuperadminAnalyticsService() {
     regionPreference: toCountMap(regionRows, "country_code"),
     languagePreference: toCountMap(languageRows, "language"),
   };
+
+  await cacheSet(cacheKey, data, CACHE_TTL.analyticsSuperadmin);
+  return { ...data, cached: false };
 }
 
 export async function getSuperadminUsersService() {
@@ -187,6 +202,12 @@ function countMealsInPlan(dietPlan) {
 }
 
 export async function getAIAnalyticsService() {
+  const cacheKey = CACHE_PREFIX.analyticsAiPlans;
+  const cached = await cacheGet(cacheKey);
+  if (cached) {
+    return { ...cached, cached: true };
+  }
+
   const conn = await db();
 
   const [[stats]] = await conn.query(
@@ -210,7 +231,7 @@ export async function getAIAnalyticsService() {
      ORDER BY total DESC`,
   );
 
-  return {
+  const data = {
     totalGenerated,
     last30Days: Number(stats.last30Days || 0),
     uniqueUsers,
@@ -221,6 +242,9 @@ export async function getAIAnalyticsService() {
       count: Number(row.total || 0),
     })),
   };
+
+  await cacheSet(cacheKey, data, CACHE_TTL.analyticsAiPlans);
+  return { ...data, cached: false };
 }
 
 export async function getAIGeneratedMealsService(limit = 50) {

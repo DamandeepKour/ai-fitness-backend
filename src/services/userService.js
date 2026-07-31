@@ -2,6 +2,7 @@ import db from "../config/db.js";
 import bcrypt from "bcryptjs";
 import { saveUserHistory } from "../repositories/userHistoryRepo.js";
 import { AppError } from "../utils/AppError.js";
+import { invalidateCachesForProfileChange, PLAN_PROFILE_FIELDS } from "../config/cache.js";
 
 const safeUserFields = `
   id, name, email, user_type, mobile_number, country_code, language, age, gender,
@@ -50,6 +51,7 @@ export const updateUserService = async (userId, data) => {
 
   const fields = [];
   const values = [];
+  const changedFields = [];
 
   for (const key of Object.keys(data)) {
     if (allowedFields.includes(key)) {
@@ -61,6 +63,7 @@ export const updateUserService = async (userId, data) => {
 
       // 🔥 TRACK CHANGE
       if (key !== "password" && oldUser[key] != data[key]) {
+        changedFields.push(key);
         await saveUserHistory({
           user_id: userId,
           field_name: key,
@@ -87,6 +90,10 @@ export const updateUserService = async (userId, data) => {
   await conn.query(query, values);
 
   const updatedUser = await getUserByIdService(userId);
+
+  if (changedFields.some((field) => PLAN_PROFILE_FIELDS.includes(field))) {
+    void invalidateCachesForProfileChange(userId, changedFields).catch(() => {});
+  }
 
   return { success: true, user: updatedUser };
 };

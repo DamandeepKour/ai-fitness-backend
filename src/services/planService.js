@@ -1,11 +1,36 @@
 import generateAIPlan from "./aiService.js";
-import { getRedis } from "../config/redis.js";
 import { savePlan } from "../repositories/planRepo.js";
 import { getPantryIngredientList } from "./pantryService.js";
 import { updateUserService } from "./userService.js";
+import {
+  buildPlanProfileHash,
+  CACHE_TTL,
+  cacheGet,
+  cacheSet,
+  planCacheKey,
+  trackPlanCacheKey,
+} from "../config/cache.js";
+import { logger } from "../config/logger.js";
 
 const createPlanService = async (userId, data) => {
   try {
+    const planInput = { ...data };
+    if (data.pantry_mode) {
+      planInput.pantry_items = await getPantryIngredientList(userId);
+    }
+
+    const profileHash = buildPlanProfileHash(userId, planInput);
+    const cacheKey = planCacheKey(profileHash);
+
+    const cached = await cacheGet(cacheKey);
+    if (cached) {
+      logger.info(
+        { type: "cache", userId, profileHash, hit: true },
+        "AI plan cache hit",
+      );
+      return cached;
+    }
+
     const profileUpdates = {
       weight: Number(data.weight),
       height: Number(data.height),
@@ -15,52 +40,23 @@ const createPlanService = async (userId, data) => {
 
     await updateUserService(userId, profileUpdates);
 
-    const planInput = { ...data };
-    if (data.pantry_mode) {
-      planInput.pantry_items = await getPantryIngredientList(userId);
-    }
-
-    const pantryCacheKey = data.pantry_mode
-      ? (planInput.pantry_items || []).map((item) => item.toLowerCase()).sort().join(",")
-      : "full";
-
-    const cacheKey = [
-      "plan",
-      userId,
-      data.plan_type,
-      profileUpdates.weight,
-      profileUpdates.height,
-      profileUpdates.goal,
-      profileUpdates.diet_type,
-      data.workout_type || "home",
-      data.workout_focus || "balanced",
-      data.injury_notes || "",
-      data.meal_preference || "any",
-      data.budget_tier || "std",
-      data.pantry_mode ? "pantry" : "full",
-      pantryCacheKey,
-      data.ai_prompt || "",
-    ].join(":");
-
-    const redis = getRedis();
-    if (redis) {
-      const cached = await redis.get(cacheKey);
-      if (cached) return JSON.parse(cached);
-    }
-
     const aiResult = await generateAIPlan(planInput, { userId });
     const { aiMeta, ...aiData } = aiResult;
 
     await savePlan(userId, aiData);
 
-    if (redis) {
-      await redis.set(cacheKey, JSON.stringify(aiData), "EX", 3600);
-    }
+    const ttl = CACHE_TTL.plan;
+    await cacheSet(cacheKey, aiData, ttl);
+    await trackPlanCacheKey(userId, cacheKey, ttl);
+
+    logger.info(
+      { type: "cache", userId, profileHash, hit: false, ttl },
+      "AI plan cache stored",
+    );
 
     return aiData;
-
   } catch (error) {
-    console.error("Plan Service Error:", error.message);
+    logger.error({ type: "plan", err: error.message, userId }, "Plan Service Error");
     throw error;
   }
 };
