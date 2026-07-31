@@ -1,12 +1,12 @@
-import { AI_CONFIG, AI_STATUS } from "../config.js";
+import { AI_CONFIG, AI_STATUS } from "./config.js";
 import {
   createChatCompletionWithRetry,
   extractCompletionContent,
   extractTokenUsage,
-} from "../client/groqProvider.js";
-import { logAiMetadata } from "../metadata/logAiMetadata.js";
-import { isAiRateLimitError, normalizeAiProviderError } from "../utils/aiErrors.js";
-import { AppError } from "../../utils/AppError.js";
+} from "./client/groqProvider.js";
+import { logAiMetadata } from "./metadata/logAiMetadata.js";
+import { isAiRateLimitError, normalizeAiProviderError } from "./utils/aiErrors.js";
+import { AppError } from "../utils/AppError.js";
 
 function parseResponseContent(content, parseJson) {
   if (!parseJson) return content;

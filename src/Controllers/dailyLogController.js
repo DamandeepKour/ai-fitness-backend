@@ -2,6 +2,9 @@ import { addDailyLogService, getDailySummaryService } from "../services/dailyLog
 import { isValidYmd, serverCalendarYmd } from "../utils/localDate.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
 import { AUDIT_ACTIONS, logAction } from "../utils/auditLog.js";
+import { isQueueEnabled } from "../jobs/connection.js";
+import { enqueueStreakJob } from "../jobs/queues.js";
+import { getStreakService } from "../services/streakService.js";
 
 export const addDailyLog = asyncHandler(async (req, res) => {
   const userId = req.user.id;
@@ -31,6 +34,10 @@ export const addDailyLog = asyncHandler(async (req, res) => {
         inserted: Boolean(result.inserted),
       },
     });
+
+    if (isQueueEnabled()) {
+      void enqueueStreakJob({ userId, asOfDate: logDate }).catch(() => {});
+    }
 
     res.json({
       success: true,
@@ -67,4 +74,9 @@ export const getDailySummary = asyncHandler(async (req, res) => {
   const result = await getDailySummaryService(userId, logDate);
 
   res.json({ success: true, data: result });
+});
+
+export const getStreak = asyncHandler(async (req, res) => {
+  const data = await getStreakService(req.user.id);
+  res.json({ success: true, data });
 });

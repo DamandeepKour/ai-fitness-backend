@@ -11,6 +11,7 @@ import contactRoutes from "./contactRoutes.js";
 import superadminRoutes from "./superadminRoutes.js";
 import pantryRoutes from "./pantryRoutes.js";
 import premiumRoutes from "./premiumRoutes.js";
+import jobRoutes from "./jobRoutes.js";
 
 const router = express.Router();
 
@@ -26,5 +27,6 @@ router.use("/contact", contactRoutes);
 router.use("/superadmin", superadminRoutes);
 router.use("/pantry", pantryRoutes);
 router.use("/premium", premiumRoutes);
+router.use("/jobs", jobRoutes);
 
 export default router;

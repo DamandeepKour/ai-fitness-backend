@@ -13,6 +13,7 @@ import { syncLoginTokenTable } from "./src/models/loginTokenModel.js";
 import { syncSignupVerificationTable } from "./src/models/signupVerificationModel.js";
 import { syncTrafficLogTable } from "./src/models/trafficLogModel.js";
 import { syncAiRequestLogTable } from "./src/ai/metadata/aiRequestLogModel.js";
+import { syncUserStreakTable } from "./src/models/userStreakModel.js";
 
 const syncSteps = [
   { name: "users", fn: syncUserTable },
@@ -29,6 +30,7 @@ const syncSteps = [
   { name: "signup_verifications", fn: syncSignupVerificationTable },
   { name: "api_request_logs", fn: syncTrafficLogTable },
   { name: "ai_request_logs", fn: syncAiRequestLogTable },
+  { name: "user_streaks", fn: syncUserStreakTable },
 ];
 
 export default async function initDb() {

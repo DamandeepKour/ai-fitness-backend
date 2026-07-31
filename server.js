@@ -31,6 +31,8 @@ import { connectRedis } from "./src/config/redis.js";
 import { connectMongo } from "./src/config/mongo.js";
 import { initSocket } from "./src/config/socket.js";
 import { startVerificationCleanupJob } from "./src/jobs/verificationCleanupJob.js";
+import { startFitnovaWorker } from "./src/jobs/worker.js";
+import { startJobSchedulers } from "./src/jobs/schedulers.js";
 
 const app = express();
 
@@ -73,6 +75,12 @@ const startServer = async () => {
     await connectRedis();
     await connectMongo();
     startVerificationCleanupJob();
+
+    // In-process worker + cron dispatchers (set JOB_WORKER_EMBEDDED=false to disable).
+    if (process.env.JOB_WORKER_EMBEDDED !== "false") {
+      startFitnovaWorker();
+    }
+    startJobSchedulers();
 
     const httpServer = http.createServer(app);
     initSocket(httpServer);

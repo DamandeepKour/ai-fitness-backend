@@ -1,6 +1,10 @@
 import createPlanService from "../services/planService.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
 import { AUDIT_ACTIONS, logAction } from "../utils/auditLog.js";
+import { enqueueAiPlanJob } from "../jobs/queues.js";
+import { formatJobStatus } from "../jobs/jobStatus.js";
+import { AppError } from "../utils/AppError.js";
+import { isQueueEnabled } from "../jobs/connection.js";
 
 export const generatePlan = asyncHandler(async (req, res) => {
   const userId = req.user.id;
@@ -68,4 +72,34 @@ export const generatePlan = asyncHandler(async (req, res) => {
 
     throw err;
   }
+});
+
+/** Heavy AI plan generation via BullMQ — poll GET /api/jobs/:id for status. */
+export const generatePlanAsync = asyncHandler(async (req, res) => {
+  if (!isQueueEnabled()) {
+    throw new AppError(
+      "Async plan generation unavailable — REDIS_URL is not configured",
+      503,
+      null,
+      "QUEUE_UNAVAILABLE",
+    );
+  }
+
+  const userId = req.user.id;
+  const job = await enqueueAiPlanJob({
+    userId,
+    data: req.body,
+    requestId: req.requestId || null,
+  });
+
+  const status = await formatJobStatus(job);
+
+  res.status(202).json({
+    success: true,
+    message: "Plan generation queued",
+    data: {
+      jobId: String(job.id),
+      status,
+    },
+  });
 });
