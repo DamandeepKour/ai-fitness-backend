@@ -15,10 +15,13 @@ import {
   sendSignupCode,
 } from "../Controllers/authController.js";
 import authMiddleware from "../middleware/authMiddleware.js";
+import { authLimiter } from "../middleware/rateLimiter.js";
 import { validate } from "../middleware/validate.js";
 import { resendVerificationSchema } from "../validators/authValidator.js";
 
 const router = express.Router();
+
+router.use(authLimiter);
 
 router.post("/signup", signup);
 router.post("/signup/send-code", sendSignupCode);

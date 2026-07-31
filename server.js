@@ -26,6 +26,9 @@ import { startVerificationCleanupJob } from "./src/jobs/verificationCleanupJob.j
 
 const app = express();
 
+// Required for accurate client IPs behind Render/Railway (rate limiting).
+app.set("trust proxy", 1);
+
 app.use(cors());
 app.use(express.json());
 
