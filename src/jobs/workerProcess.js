@@ -4,11 +4,19 @@ dotenv.config();
 import { hydrateDbEnvFromProvider } from "../config/db.js";
 hydrateDbEnvFromProvider();
 
+import { validateEnv } from "../config/env.js";
 import { logger } from "../config/logger.js";
 import { connectRedis } from "../config/redis.js";
 import { connectMongo } from "../config/mongo.js";
 import initDb from "../../initDb.js";
 import { startFitnovaWorker, stopFitnovaWorker } from "./worker.js";
+
+try {
+  validateEnv({ requireAi: false });
+} catch (err) {
+  console.error("❌", err.message);
+  process.exit(1);
+}
 
 async function main() {
   logger.info({ type: "jobs" }, "Starting FitNova worker process...");

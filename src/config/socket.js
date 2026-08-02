@@ -2,17 +2,14 @@ import jwt from "jsonwebtoken";
 import { Server } from "socket.io";
 import { isAdminRole, normalizeRole } from "../constants/roles.js";
 import { getUserRoleById } from "../repositories/roleRepository.js";
+import { getAllowedCorsOrigins } from "./env.js";
 
 let io = null;
 
 const SUPERADMIN_ROOM = "superadmin:activity";
 
 export function initSocket(httpServer) {
-  const allowedOrigins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    process.env.FRONTEND_URL,
-  ].filter(Boolean);
+  const allowedOrigins = getAllowedCorsOrigins();
 
   io = new Server(httpServer, {
     cors: {

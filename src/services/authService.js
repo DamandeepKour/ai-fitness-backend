@@ -34,7 +34,7 @@ function signToken(user) {
   return jwt.sign(
     { id: user.id, email: user.email, user_type: user.user_type || "user" },
     process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN },
+    { expiresIn: process.env.JWT_EXPIRES_IN || "7d" },
   );
 }
 
@@ -163,7 +163,14 @@ export const forgotPasswordService = async (data) => {
   if (!email) throw new Error("Email is required");
 
   const user = await findUserByEmail(email);
-  if (!user) throw new Error("No account found with this email");
+  // Always return a generic message to avoid account enumeration.
+  const generic = {
+    emailSent: false,
+    expiresInMinutes: PASSWORD_RESET_EXPIRES_MINUTES,
+    message: "If an account exists for this email, a reset link has been sent.",
+  };
+
+  if (!user) return generic;
 
   const conn = await db();
   const token = createPasswordResetToken();
@@ -181,10 +188,8 @@ export const forgotPasswordService = async (data) => {
   });
 
   return {
-    resetToken: token,
+    ...generic,
     emailSent: emailResult.sent === true,
-    expiresInMinutes: PASSWORD_RESET_EXPIRES_MINUTES,
-    message: "Email verified. Enter a new password.",
   };
 };
 

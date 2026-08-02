@@ -23,9 +23,6 @@ export async function formatJobStatus(job) {
         ? Math.max(0, attemptsMax - (job.attemptsMade ?? 0))
         : null,
     failedReason: job.failedReason || null,
-    stacktrace: Array.isArray(job.stacktrace)
-      ? job.stacktrace.slice(0, 3)
-      : null,
     data: sanitizeJobData(job.data),
     result: job.returnvalue ?? null,
     delay: job.delay || 0,

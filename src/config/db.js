@@ -161,4 +161,11 @@ const db = async () => {
   return pool;
 };
 
+export async function closeDb() {
+  if (!pool) return;
+  const current = pool;
+  pool = null;
+  await current.end();
+}
+
 export default db;

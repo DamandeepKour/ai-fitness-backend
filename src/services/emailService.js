@@ -1,5 +1,19 @@
 import nodemailer from "nodemailer";
 import { getEmailConfig, isEmailConfigured } from "../config/email.js";
+import { logger } from "../config/logger.js";
+import { isProductionEnv } from "../config/env.js";
+
+function logSmtpSkipped(kind, to, secret) {
+  if (isProductionEnv()) {
+    logger.warn(
+      { type: "email", kind, to },
+      "SMTP not configured — email not sent",
+    );
+    return;
+  }
+  // Dev-only: include link/code to unblock local testing.
+  logger.warn({ type: "email", kind, to, secret }, "SMTP not configured");
+}
 
 function buildEmailVerificationHtml({ name, verifyUrl, expiresInMinutes }) {
   const displayName = name || "there";
@@ -60,8 +74,8 @@ export async function sendEmailVerificationEmail({ to, name, verifyUrl, expiresI
   const subject = "Verify your FitNova AI email";
 
   if (!isEmailConfigured()) {
-    console.warn("[email] SMTP not configured — verification link for", to, ":", verifyUrl);
-    return { sent: false, reason: "smtp_not_configured", verifyUrl };
+    logSmtpSkipped("verification", to, verifyUrl);
+    return { sent: false, reason: "smtp_not_configured", verifyUrl: isProductionEnv() ? undefined : verifyUrl };
   }
 
   const config = getEmailConfig();
@@ -174,8 +188,8 @@ export async function sendSignupLoginEmail({ to, name, loginUrl }) {
   const subject = "Your FitNova AI login link";
 
   if (!isEmailConfigured()) {
-    console.warn("[email] SMTP not configured — login link for", to, ":", loginUrl);
-    return { sent: false, reason: "smtp_not_configured", loginUrl };
+    logSmtpSkipped("signup_login", to, loginUrl);
+    return { sent: false, reason: "smtp_not_configured", loginUrl: isProductionEnv() ? undefined : loginUrl };
   }
 
   const config = getEmailConfig();
@@ -206,8 +220,8 @@ export async function sendPasswordResetEmail({ to, name, resetUrl }) {
   const subject = "Reset your FitNova AI password";
 
   if (!isEmailConfigured()) {
-    console.warn("[email] SMTP not configured — password reset link for", to, ":", resetUrl);
-    return { sent: false, reason: "smtp_not_configured", resetUrl };
+    logSmtpSkipped("password_reset", to, resetUrl);
+    return { sent: false, reason: "smtp_not_configured", resetUrl: isProductionEnv() ? undefined : resetUrl };
   }
 
   const config = getEmailConfig();
@@ -274,7 +288,7 @@ export async function sendSignupOtpEmail({ to, name, code, expiresInMinutes }) {
   const subject = "Your FitNova AI verification code";
 
   if (!isEmailConfigured()) {
-    console.warn("[email] SMTP not configured — OTP for", to, ":", code);
+    logSmtpSkipped("signup_otp", to, code);
     return { sent: false, reason: "smtp_not_configured" };
   }
 
@@ -344,7 +358,7 @@ function simpleFitnovaEmail({ title, greeting, bodyHtml, ctaUrl, ctaLabel }) {
 
 async function sendTransactionalEmail({ to, subject, text, html }) {
   if (!isEmailConfigured()) {
-    console.warn("[email] SMTP not configured — skipped:", subject, "→", to);
+    logSmtpSkipped(subject, to);
     return { sent: false, reason: "smtp_not_configured" };
   }
 
