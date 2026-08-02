@@ -3,7 +3,7 @@ import { insertTrafficLog } from "../models/trafficLogModel.js";
 import { broadcastTrafficUpdate } from "../services/activityBroadcastService.js";
 import { logger } from "../config/logger.js";
 
-const SKIP_PATHS = new Set(["/", "/health"]);
+const SKIP_PATHS = new Set(["/", "/health", "/ready"]);
 
 function extractUserId(req) {
   try {

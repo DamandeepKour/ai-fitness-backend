@@ -33,6 +33,7 @@ import { initSocket } from "./src/config/socket.js";
 import { startVerificationCleanupJob } from "./src/jobs/verificationCleanupJob.js";
 import { startFitnovaWorker } from "./src/jobs/worker.js";
 import { startJobSchedulers } from "./src/jobs/schedulers.js";
+import { getLivenessStatus, getReadinessStatus } from "./src/config/health.js";
 
 const app = express();
 
@@ -47,8 +48,27 @@ app.get("/", (req, res) => {
   res.send("API is running 🚀");
 });
 
-app.get("/health", async (req, res) => {
-  res.json({ ok: true, service: "ai-fitness-backend" });
+/** Liveness probe — process is alive (no dependency checks). */
+app.get("/health", (req, res) => {
+  res.status(200).json(getLivenessStatus());
+});
+
+/** Readiness probe — MySQL + AI must be up before receiving traffic. */
+app.get("/ready", async (req, res) => {
+  try {
+    const body = await getReadinessStatus();
+    res.status(body.ready ? 200 : 503).json(body);
+  } catch (err) {
+    logger.error({ type: "health", err: err.message }, "Readiness check failed");
+    res.status(503).json({
+      status: "error",
+      service: "ai-fitness-backend",
+      check: "readiness",
+      ready: false,
+      timestamp: new Date().toISOString(),
+      error: "readiness_check_failed",
+    });
+  }
 });
 
 app.use("/api", requestLoggerMiddleware, trafficMiddleware, routes);
