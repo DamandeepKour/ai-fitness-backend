@@ -47,7 +47,11 @@ export function stableHash(value) {
  */
 export function buildPlanProfileHash(userId, data = {}) {
   const pantryItems = Array.isArray(data.pantry_items)
-    ? [...data.pantry_items].map((item) => String(item).toLowerCase().trim()).filter(Boolean).sort()
+    ? [...new Set(
+      data.pantry_items
+        .map((item) => String(item).toLowerCase().trim())
+        .filter(Boolean),
+    )].sort()
     : [];
 
   const payload = {

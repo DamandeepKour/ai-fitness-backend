@@ -26,17 +26,9 @@ process.on("unhandledRejection", (reason) => {
   );
 });
 
-import express from "express";
 import http from "http";
 import initDb from "./initDb.js";
-import routes from "./src/routes/index.js";
-import notFound from "./src/middleware/notFound.js";
-import errorHandler from "./src/middleware/errorHandler.js";
-import trafficMiddleware from "./src/middleware/trafficMiddleware.js";
-import requestContextMiddleware from "./src/middleware/requestContext.js";
-import requestLoggerMiddleware from "./src/middleware/requestLogger.js";
-import { applySecurityMiddleware, corsErrorHandler } from "./src/middleware/security.js";
-import { apiLimiter } from "./src/middleware/rateLimiter.js";
+import { createApp, API_VERSION } from "./src/app.js";
 import { connectRedis } from "./src/config/redis.js";
 import { connectMongo } from "./src/config/mongo.js";
 import { initSocket } from "./src/config/socket.js";
@@ -44,70 +36,8 @@ import { registerGracefulShutdown } from "./src/config/shutdown.js";
 import { startVerificationCleanupJob } from "./src/jobs/verificationCleanupJob.js";
 import { startFitnovaWorker } from "./src/jobs/worker.js";
 import { startJobSchedulers } from "./src/jobs/schedulers.js";
-import { getLivenessStatus, getReadinessStatus } from "./src/config/health.js";
 
-const app = express();
-const API_VERSION = "v1";
-
-// Required for accurate client IPs behind Render/Railway (rate limiting).
-app.set("trust proxy", 1);
-
-applySecurityMiddleware(app);
-app.use(express.json({ limit: process.env.BODY_SIZE_LIMIT || "1mb" }));
-app.use(requestContextMiddleware);
-
-app.get("/", (req, res) => {
-  res.json({
-    service: "ai-fitness-backend",
-    status: "ok",
-    api: `/api/${API_VERSION}`,
-  });
-});
-
-/** Liveness probe — process is alive (no dependency checks). */
-app.get("/health", (req, res) => {
-  res.status(200).json(getLivenessStatus());
-});
-
-/** Readiness probe — MySQL + AI must be up before receiving traffic. */
-app.get("/ready", async (req, res) => {
-  try {
-    const body = await getReadinessStatus();
-    res.status(body.ready ? 200 : 503).json(body);
-  } catch (err) {
-    logger.error({ type: "health", err: err.message }, "Readiness check failed");
-    res.status(503).json({
-      status: "error",
-      service: "ai-fitness-backend",
-      check: "readiness",
-      ready: false,
-      timestamp: new Date().toISOString(),
-      error: "readiness_check_failed",
-    });
-  }
-});
-
-const apiRouter = express.Router();
-apiRouter.use(apiLimiter);
-apiRouter.use(requestLoggerMiddleware);
-apiRouter.use(trafficMiddleware);
-apiRouter.use(routes);
-
-// Canonical versioned API.
-app.use(`/api/${API_VERSION}`, apiRouter);
-
-// Backward-compatible unversioned /api/* (skip if already under /v1).
-app.use("/api", (req, res, next) => {
-  if (req.path === `/${API_VERSION}` || req.path.startsWith(`/${API_VERSION}/`)) {
-    return next();
-  }
-  return apiRouter(req, res, next);
-});
-
-app.use(notFound);
-app.use(corsErrorHandler);
-app.use(errorHandler);
-
+const app = createApp();
 const PORT = Number(process.env.PORT) || 5000;
 
 const startServer = async () => {
@@ -130,7 +60,6 @@ const startServer = async () => {
     await connectMongo();
     startVerificationCleanupJob();
 
-    // In-process worker + cron dispatchers (set JOB_WORKER_EMBEDDED=false to disable).
     if (process.env.JOB_WORKER_EMBEDDED !== "false") {
       startFitnovaWorker();
     }
