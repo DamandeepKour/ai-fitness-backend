@@ -1,7 +1,8 @@
 import generateAIPlan from "../ai/aiService.js";
-import { savePlan } from "./planRepo.js";
+import { generatePlanExplanation } from "../ai/features/explainPlanGenerator.js";
+import { savePlan, getUserPlan } from "./planRepo.js";
 import { getPantryIngredientList } from "../meals/pantryService.js";
-import { updateUserService } from "../users/userService.js";
+import { updateUserService, getUserByIdService } from "../users/userService.js";
 import {
   buildPlanProfileHash,
   CACHE_TTL,
@@ -11,6 +12,7 @@ import {
   trackPlanCacheKey,
 } from "../../config/cache.js";
 import { logger } from "../../config/logger.js";
+import { AppError } from "../../utils/AppError.js";
 
 const createPlanService = async (userId, data) => {
   try {
@@ -59,6 +61,43 @@ const createPlanService = async (userId, data) => {
     logger.error({ type: "plan", err: error.message, userId }, "Plan Service Error");
     throw error;
   }
+};
+
+function parseJsonColumn(value, fallback) {
+  if (!value) return fallback;
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return fallback;
+    }
+  }
+  return value;
+}
+
+/** "Why this plan" — explains the user's current saved plan. */
+export const explainPlanService = async (userId) => {
+  const plan = await getUserPlan(userId);
+  if (!plan) {
+    throw new AppError("No saved plan found — generate a plan first.", 404, null, "PLAN_NOT_FOUND");
+  }
+
+  const user = await getUserByIdService(userId);
+
+  const context = {
+    goal: plan.goal ?? user?.goal ?? null,
+    diet_type: user?.diet_type ?? null,
+  };
+
+  const normalizedPlan = {
+    calories: plan.calories,
+    diet_plan: parseJsonColumn(plan.diet_plan, []),
+    workout_plan: parseJsonColumn(plan.workout_plan, []),
+  };
+
+  const { explanation, aiMeta } = await generatePlanExplanation(normalizedPlan, context, { userId });
+
+  return { explanation, aiMeta };
 };
 
 export default createPlanService;

@@ -1,4 +1,4 @@
-import createPlanService from "./planService.js";
+import createPlanService, { explainPlanService } from "./planService.js";
 import { asyncHandler } from "../../middleware/asyncHandler.js";
 import { AUDIT_ACTIONS, logAction } from "../../utils/auditLog.js";
 import { enqueueAiPlanJob } from "../../jobs/queues.js";
@@ -72,6 +72,17 @@ export const generatePlan = asyncHandler(async (req, res) => {
 
     throw err;
   }
+});
+
+/** "Why this plan" — explains the user's current saved plan. */
+export const explainPlan = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const { explanation, aiMeta } = await explainPlanService(userId);
+
+  res.json({
+    success: true,
+    data: { explanation, aiMeta },
+  });
 });
 
 /** Heavy AI plan generation via BullMQ — poll GET /api/jobs/:id for status. */

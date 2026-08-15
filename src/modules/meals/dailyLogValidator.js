@@ -47,3 +47,21 @@ export const dailySummaryQuerySchema = Joi.object({
       "string.pattern.base": "date must be YYYY-MM-DD",
     }),
 });
+
+export const explainMealQuerySchema = Joi.object({
+  meal_type: Joi.string()
+    .trim()
+    .valid(...MEAL_TYPES)
+    .required()
+    .messages({
+      "any.only": "meal_type must be a supported meal slot",
+      "any.required": "meal_type is required",
+    }),
+  date: Joi.string()
+    .trim()
+    .pattern(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .messages({
+      "string.pattern.base": "date must be YYYY-MM-DD",
+    }),
+});

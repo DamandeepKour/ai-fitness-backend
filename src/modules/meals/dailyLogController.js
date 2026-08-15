@@ -1,4 +1,4 @@
-import { addDailyLogService, getDailySummaryService } from "./dailyLogService.js";
+import { addDailyLogService, getDailySummaryService, explainMealService } from "./dailyLogService.js";
 import { isValidYmd, serverCalendarYmd } from "../../utils/localDate.js";
 import { asyncHandler } from "../../middleware/asyncHandler.js";
 import { AUDIT_ACTIONS, logAction } from "../../utils/auditLog.js";
@@ -74,6 +74,18 @@ export const getDailySummary = asyncHandler(async (req, res) => {
   const result = await getDailySummaryService(userId, logDate);
 
   res.json({ success: true, data: result });
+});
+
+export const explainMeal = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const logDate = isValidYmd(req.query.date) ? req.query.date : serverCalendarYmd();
+
+  const { explanation, aiMeta } = await explainMealService(userId, logDate, req.query.meal_type);
+
+  res.json({
+    success: true,
+    data: { explanation, aiMeta },
+  });
 });
 
 export const getStreak = asyncHandler(async (req, res) => {

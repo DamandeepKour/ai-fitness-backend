@@ -1,5 +1,6 @@
 import { saveDailyLog, getDailyLogs } from "./dailyLogRepo.js";
 import { getUserPlan } from "../plans/planRepo.js";
+import { generateMealExplanation } from "../ai/features/explainMealGenerator.js";
 import { AppError } from "../../utils/AppError.js";
 
 const DAILY_LOG_MEAL_TYPES = new Set([
@@ -25,7 +26,7 @@ const MEAL_TYPE_ALIASES = {
   cheat_meal: "dinner",
 };
 
-const normalizeMealType = (mealType = "") => {
+export const normalizeMealType = (mealType = "") => {
   const normalized = String(mealType).trim().toLowerCase().replace(/[\s-]+/g, "_");
   const canonical = MEAL_TYPE_ALIASES[normalized] || normalized;
 
@@ -75,5 +76,32 @@ export const getDailySummaryService = async (userId, logDate) => {
     fat,
     meals: logs,
   };
+};
+
+/** "Why this meal" — explains a specific logged meal against the user's plan/goal. */
+export const explainMealService = async (userId, logDate, mealType) => {
+  const canonicalMealType = normalizeMealType(mealType);
+  const logs = await getDailyLogs(userId, logDate);
+  const meal = logs.find((log) => log.meal_type === canonicalMealType);
+
+  if (!meal) {
+    throw new AppError(
+      `No logged meal found for ${canonicalMealType} on ${logDate}`,
+      404,
+      null,
+      "MEAL_LOG_NOT_FOUND",
+    );
+  }
+
+  const userPlan = await getUserPlan(userId);
+
+  const context = {
+    goal: userPlan?.goal ?? null,
+    targetCalories: userPlan?.calories ?? null,
+  };
+
+  const { explanation, aiMeta } = await generateMealExplanation(meal, context, { userId });
+
+  return { explanation, aiMeta };
 };
 

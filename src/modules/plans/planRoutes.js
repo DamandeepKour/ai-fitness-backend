@@ -1,7 +1,7 @@
 import express from "express";
-import { generatePlan, generatePlanAsync } from "./planController.js";
+import { generatePlan, generatePlanAsync, explainPlan } from "./planController.js";
 import authMiddleware from "../auth/authMiddleware.js";
-import { aiPlanLimiter } from "../../middleware/rateLimiter.js";
+import { aiPlanLimiter, aiLimiter } from "../../middleware/rateLimiter.js";
 import { validate } from "../../middleware/validate.js";
 import { aiPlanRequestSchema } from "../ai/aiRequestValidator.js";
 
@@ -15,5 +15,6 @@ router.post(
   validate(aiPlanRequestSchema),
   generatePlanAsync,
 );
+router.get("/explain", authMiddleware, aiLimiter, explainPlan);
 
 export default router;
