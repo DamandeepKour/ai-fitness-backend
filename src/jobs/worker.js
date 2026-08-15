@@ -5,7 +5,6 @@ import { QUEUE_NAME } from "./constants.js";
 import { PROCESSOR_MAP } from "./processors/index.js";
 
 let worker = null;
-
 export function startFitnovaWorker() {
   if (!isQueueEnabled()) {
     logger.warn({ type: "jobs" }, "REDIS_URL not set — FitNova job worker not started");
