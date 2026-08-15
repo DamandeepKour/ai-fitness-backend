@@ -27,7 +27,7 @@ vi.mock("../../src/modules/auth/authService.js", () => ({
   verifyEmailService: vi.fn(),
 }));
 
-vi.mock("../../src/services/dailyLogService.js", () => ({
+vi.mock("../../src/modules/meals/dailyLogService.js", () => ({
   addDailyLogService: vi.fn(async () => ({
     id: 99,
     inserted: true,
@@ -40,7 +40,7 @@ vi.mock("../../src/services/dailyLogService.js", () => ({
   })),
 }));
 
-vi.mock("../../src/services/streakService.js", () => ({
+vi.mock("../../src/modules/users/streakService.js", () => ({
   getStreakService: vi.fn(async () => ({
     userId: 1,
     currentStreak: 3,
@@ -51,7 +51,7 @@ vi.mock("../../src/services/streakService.js", () => ({
   computeStreakFromDates: vi.fn(),
 }));
 
-vi.mock("../../src/services/planService.js", () => ({
+vi.mock("../../src/modules/plans/planService.js", () => ({
   default: vi.fn(async () => ({
     goal: "fat_loss",
     calories: 1800,
