@@ -8,6 +8,5 @@ export const insertContactMessage = async ({ name, email, message }) => {
     `INSERT INTO ${contactTable} (name, email, message) VALUES (?, ?, ?)`,
     [name, email, message],
   );
-
   return { id: result.insertId };
 };
