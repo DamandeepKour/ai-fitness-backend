@@ -13,7 +13,6 @@ const router = express.Router();
 const systemRead = requirePermission(PERMISSIONS.SYSTEM_READ);
 
 router.use(authMiddleware);
-
 router.get("/", systemRead, listJobs);
 router.get("/:id", getJobStatus);
 router.post("/:id/retry", systemRead, retryJob);
