@@ -1,7 +1,7 @@
 // src/middleware/rateLimiter.js
 
 import rateLimit, { ipKeyGenerator } from "express-rate-limit";
-import { AI_RATE_LIMIT_CODE, AI_RATE_LIMIT_MESSAGE } from "../ai/utils/aiErrors.js";
+import { AI_RATE_LIMIT_CODE, AI_RATE_LIMIT_MESSAGE } from "../modules/ai/utils/aiErrors.js";
 import { RATE_LIMIT_CONFIG } from "../config/rateLimit.js";
 
 function secondsUntilReset(req) {

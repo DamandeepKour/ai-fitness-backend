@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import { Server } from "socket.io";
-import { isAdminRole, normalizeRole } from "../constants/roles.js";
-import { getUserRoleById } from "../repositories/roleRepository.js";
+import { isAdminRole, normalizeRole } from "../modules/auth/roles.js";
+import { getUserRoleById } from "../modules/auth/roleRepository.js";
 import { getAllowedCorsOrigins } from "./env.js";
 
 let io = null;

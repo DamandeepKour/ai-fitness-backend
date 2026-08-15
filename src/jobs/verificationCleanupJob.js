@@ -1,5 +1,5 @@
 import cron from "node-cron";
-import { deleteUnverifiedUsersOlderThanHours } from "../repositories/userRepository.js";
+import { deleteUnverifiedUsersOlderThanHours } from "../modules/users/userRepository.js";
 
 const CLEANUP_INTERVAL_HOURS = 24;
 

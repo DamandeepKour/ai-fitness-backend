@@ -1,11 +1,11 @@
 import { processAiPlanJob } from "./aiPlanProcessor.js";
-import { sendDailyReminderForUser, listReminderCandidates } from "../../services/reminderJobService.js";
+import { sendDailyReminderForUser, listReminderCandidates } from "../../modules/notifications/reminderJobService.js";
 import {
   generateAndSendWeeklySummary,
   listWeeklySummaryRecipients,
-} from "../../services/weeklySummaryService.js";
-import { calculateAndSaveStreak } from "../../services/streakService.js";
-import { listActiveUserIds } from "../../repositories/streakRepo.js";
+} from "../../modules/notifications/weeklySummaryService.js";
+import { calculateAndSaveStreak } from "../../modules/users/streakService.js";
+import { listActiveUserIds } from "../../modules/users/streakRepo.js";
 import {
   enqueueDailyReminderJob,
   enqueueStreakJob,

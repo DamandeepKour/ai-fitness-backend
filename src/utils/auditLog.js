@@ -3,7 +3,7 @@ import { getRequestContext } from "../context/requestContext.js";
 import {
   ANALYTICS_EVENT_TYPES,
   trackAnalyticsEvent,
-} from "../models/mongo/analyticsEventService.js";
+} from "../modules/analytics/analyticsEventService.js";
 
 export const AUDIT_ACTIONS = {
   SIGNUP: "signup",

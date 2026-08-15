@@ -1,5 +1,5 @@
 import { logger } from "../config/logger.js";
-import { trackUserActivity } from "../models/mongo/analyticsEventService.js";
+import { trackUserActivity } from "../modules/analytics/analyticsEventService.js";
 
 /**
  * Structured HTTP access log for every API request (requestId, userId, route, latency, status).

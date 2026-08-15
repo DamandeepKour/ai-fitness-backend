@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeStreakFromDates } from "../../../src/services/streakService.js";
+import { computeStreakFromDates } from "../../../src/modules/users/streakService.js";
 
 describe("computeStreakFromDates", () => {
   it("counts consecutive days ending today", () => {

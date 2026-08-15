@@ -1,4 +1,4 @@
-import createPlanService from "../../services/planService.js";
+import createPlanService from "../../modules/plans/planService.js";
 import { AUDIT_ACTIONS, logAction } from "../../utils/auditLog.js";
 
 export async function processAiPlanJob(job) {

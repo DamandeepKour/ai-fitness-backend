@@ -5,9 +5,9 @@ import {
   retryJob,
   triggerDispatch,
 } from "../Controllers/jobController.js";
-import authMiddleware from "../middleware/authMiddleware.js";
-import { requirePermission } from "../middleware/requireRole.js";
-import { PERMISSIONS } from "../constants/roles.js";
+import authMiddleware from "../modules/auth/authMiddleware.js";
+import { requirePermission } from "../modules/auth/requireRole.js";
+import { PERMISSIONS } from "../modules/auth/roles.js";
 
 const router = express.Router();
 const systemRead = requirePermission(PERMISSIONS.SYSTEM_READ);

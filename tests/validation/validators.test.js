@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { signupSchema } from "../../src/validators/authValidator.js";
-import { addDailyLogSchema } from "../../src/validators/dailyLogValidator.js";
-import { aiPlanRequestSchema } from "../../src/validators/aiRequestValidator.js";
+import { signupSchema } from "../../src/modules/auth/authValidator.js";
+import { addDailyLogSchema } from "../../src/modules/meals/dailyLogValidator.js";
+import { aiPlanRequestSchema } from "../../src/modules/ai/aiRequestValidator.js";
 
 describe("signupSchema edge cases", () => {
   it("accepts valid signup payload", () => {

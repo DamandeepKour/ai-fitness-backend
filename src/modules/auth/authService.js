@@ -1,0 +1,232 @@
+import db from "../../config/db.js";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import crypto from "crypto";
+import { verifyLoginTokenService } from "./loginTokenService.js";
+import { loginTokenTable } from "./loginTokenModel.js";
+import { getFrontendUrl } from "../../config/email.js";
+import { sendPasswordResetEmail } from "../notifications/emailService.js";
+import { validateSignupEmail } from "../../utils/emailValidator.js";
+import { signupSchema } from "./authValidator.js";
+import {
+  createUser,
+  findUserByEmail,
+  findUserById,
+} from "../users/userRepository.js";
+import { createAndSendVerificationToken } from "./emailVerificationService.js";
+
+import { ROLES, normalizeRole, roleMatches, isAllowedUserType } from "./roles.js";
+const PASSWORD_RESET_TOKEN_BYTES = 32;
+const PASSWORD_RESET_EXPIRES_MINUTES = Number(process.env.PASSWORD_RESET_EXPIRES_MINUTES || 30);
+
+function normalizeUserType(value) {
+  const next = normalizeRole(value || ROLES.USER);
+  return isAllowedUserType(next) ? next : ROLES.USER;
+}
+
+function sanitizeUser(user) {
+  if (!user) return null;
+  const { password, verification_token, verification_token_expiry, ...safeUser } = user;
+  return safeUser;
+}
+
+function signToken(user) {
+  return jwt.sign(
+    { id: user.id, email: user.email, user_type: user.user_type || "user" },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRES_IN || "7d" },
+  );
+}
+
+function validateNewPassword(password, confirmPassword) {
+  if (!password) throw new Error("Password is required");
+  if (password.length < 8) throw new Error("Password must be at least 8 characters");
+  if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
+    throw new Error("Password must include letters and numbers");
+  }
+  if (confirmPassword != null && password !== confirmPassword) {
+    throw new Error("Passwords do not match");
+  }
+}
+
+function createPasswordResetToken() {
+  return crypto.randomBytes(PASSWORD_RESET_TOKEN_BYTES).toString("hex");
+}
+
+function assertUserVerified(user) {
+  if (user.is_verified === false || user.is_verified === 0) {
+    const err = new Error("Please verify your email before logging in.");
+    err.statusCode = 403;
+    throw err;
+  }
+}
+
+export const verifyEmailService = async (data) => {
+  const email = await validateSignupEmail(data.email);
+  return {
+    valid: true,
+    email,
+    message: "Email is valid",
+  };
+};
+
+// 🔐 SIGNUP
+export const signupService = async (data, options = {}) => {
+  const { error, value } = signupSchema.validate(data, { abortEarly: false, stripUnknown: true });
+  if (error) {
+    throw new Error(error.details[0]?.message || "Invalid signup data");
+  }
+
+  const userType = normalizeUserType(options.userType || data.user_type);
+  const email = await validateSignupEmail(value.email);
+  const hashedPassword = await bcrypt.hash(value.password, 10);
+  const mobileNumber = value.phone || value.mobile_number || null;
+
+  const existingUser = await findUserByEmail(email);
+  if (existingUser) {
+    throw new Error("An account with this email already exists");
+  }
+
+  const isVerified = userType !== "user";
+  let userId;
+
+  try {
+    userId = await createUser({
+      name: value.name,
+      email,
+      password: hashedPassword,
+      userType,
+      mobileNumber,
+      isVerified,
+    });
+  } catch (err) {
+    if (err.code === "ER_DUP_ENTRY") {
+      throw new Error("An account with this email already exists");
+    }
+    throw err;
+  }
+
+  if (userType === "user") {
+    const user = await findUserById(userId);
+    const emailResult = await createAndSendVerificationToken(user);
+
+    return {
+      id: userId,
+      user_type: userType,
+      emailSent: emailResult.emailSent,
+      expiresInMinutes: emailResult.expiresInMinutes,
+      message: "Verification email sent successfully.",
+    };
+  }
+
+  return {
+    id: userId,
+    user_type: userType,
+    emailSent: false,
+    message: "User registered successfully",
+  };
+};
+
+// 🔐 LOGIN
+export const loginService = async (data, options = {}) => {
+  const requiredUserType = options.requiredUserType
+    ? normalizeUserType(options.requiredUserType)
+    : null;
+
+  const user = await findUserByEmail(String(data.email || "").trim().toLowerCase());
+  if (!user) throw new Error("User not found");
+
+  const isMatch = await bcrypt.compare(data.password, user.password);
+  if (!isMatch) throw new Error("Invalid credentials");
+  if (requiredUserType && !roleMatches(user.user_type, [requiredUserType])) {
+    throw new Error(`This login is only allowed for ${requiredUserType} accounts`);
+  }
+
+  if (user.auth_provider === "local" || !user.auth_provider) {
+    assertUserVerified(user);
+  }
+
+  const token = signToken(user);
+
+  return { token, user: sanitizeUser(user) };
+};
+
+export const magicLoginService = async (token) => {
+  const { user } = await verifyLoginTokenService(token);
+  assertUserVerified(user);
+  const jwtToken = signToken(user);
+  return { token: jwtToken, user: sanitizeUser(user) };
+};
+
+export const forgotPasswordService = async (data) => {
+  const email = String(data.email || "").trim().toLowerCase();
+  if (!email) throw new Error("Email is required");
+
+  const user = await findUserByEmail(email);
+  // Always return a generic message to avoid account enumeration.
+  const generic = {
+    emailSent: false,
+    expiresInMinutes: PASSWORD_RESET_EXPIRES_MINUTES,
+    message: "If an account exists for this email, a reset link has been sent.",
+  };
+
+  if (!user) return generic;
+
+  const conn = await db();
+  const token = createPasswordResetToken();
+  await conn.query(
+    `INSERT INTO ${loginTokenTable} (user_id, token, purpose, expires_at)
+     VALUES (?, ?, 'password_reset', DATE_ADD(NOW(), INTERVAL ? MINUTE))`,
+    [user.id, token, PASSWORD_RESET_EXPIRES_MINUTES],
+  );
+
+  const resetUrl = `${getFrontendUrl()}/forgot-password?token=${token}`;
+  const emailResult = await sendPasswordResetEmail({
+    to: user.email,
+    name: user.name,
+    resetUrl,
+  });
+
+  return {
+    ...generic,
+    emailSent: emailResult.sent === true,
+  };
+};
+
+export const resetPasswordService = async (data) => {
+  const token = String(data.token || "").trim();
+  const password = String(data.password || "");
+  const confirmPassword = data.confirmPassword != null ? String(data.confirmPassword) : undefined;
+
+  if (!token || token.length < 32) throw new Error("Invalid or expired reset link");
+  validateNewPassword(password, confirmPassword);
+
+  const conn = await db();
+  const [rows] = await conn.query(
+    `SELECT lt.id, lt.user_id
+     FROM ${loginTokenTable} lt
+     WHERE lt.token = ?
+       AND lt.purpose = 'password_reset'
+       AND lt.used_at IS NULL
+       AND lt.expires_at > NOW()
+     LIMIT 1`,
+    [token],
+  );
+
+  const resetToken = rows[0];
+  if (!resetToken) throw new Error("Invalid or expired reset link");
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+  await conn.query(`UPDATE users SET password = ? WHERE id = ?`, [
+    hashedPassword,
+    resetToken.user_id,
+  ]);
+  await conn.query(
+    `UPDATE ${loginTokenTable}
+     SET used_at = NOW()
+     WHERE user_id = ? AND purpose = 'password_reset' AND used_at IS NULL`,
+    [resetToken.user_id],
+  );
+
+  return { message: "Password reset successfully" };
+};

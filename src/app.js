@@ -2,7 +2,7 @@ import express from "express";
 import routes from "./routes/index.js";
 import notFound from "./middleware/notFound.js";
 import errorHandler from "./middleware/errorHandler.js";
-import trafficMiddleware from "./middleware/trafficMiddleware.js";
+import trafficMiddleware from "./modules/analytics/trafficMiddleware.js";
 import requestContextMiddleware from "./middleware/requestContext.js";
 import requestLoggerMiddleware from "./middleware/requestLogger.js";
 import { applySecurityMiddleware, corsErrorHandler } from "./middleware/security.js";

@@ -1,7 +1,7 @@
 import db from "./db.js";
 import { getRedis } from "./redis.js";
 import { isMongoConfigured, isMongoReady } from "./mongo.js";
-import { AI_CONFIG } from "../ai/config.js";
+import { AI_CONFIG } from "../modules/ai/config.js";
 import { logger } from "./logger.js";
 
 const startedAt = Date.now();

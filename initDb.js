@@ -1,19 +1,19 @@
 import db from "./src/config/db.js";
-import { syncDailyLogTable } from "./src/models/dailyLogModel.js";
-import { syncPlanTable } from "./src/models/planModel.js";
-import { syncProgressTable } from "./src/models/progressModel.js";
-import { syncUserHistoryTable } from "./src/models/userHistoryModel.js";
-import { syncUserTable } from "./src/models/userModel.js";
-import { syncWeightTable } from "./src/models/weightModel.js";
-import { syncContactTable } from "./src/models/contactModel.js";
-import { syncBusinessTables, seedBusinessDemoData } from "./src/models/businessModel.js";
-import { syncPantryTable } from "./src/models/pantryModel.js";
-import { syncPremiumTables } from "./src/models/premiumModel.js";
-import { syncLoginTokenTable } from "./src/models/loginTokenModel.js";
-import { syncSignupVerificationTable } from "./src/models/signupVerificationModel.js";
-import { syncTrafficLogTable } from "./src/models/trafficLogModel.js";
-import { syncAiRequestLogTable } from "./src/ai/metadata/aiRequestLogModel.js";
-import { syncUserStreakTable } from "./src/models/userStreakModel.js";
+import { syncDailyLogTable } from "./src/modules/meals/dailyLogModel.js";
+import { syncPlanTable } from "./src/modules/plans/planModel.js";
+import { syncProgressTable } from "./src/modules/plans/progressModel.js";
+import { syncUserHistoryTable } from "./src/modules/users/userHistoryModel.js";
+import { syncUserTable } from "./src/modules/users/userModel.js";
+import { syncWeightTable } from "./src/modules/plans/weightModel.js";
+import { syncContactTable } from "./src/modules/admin/contactModel.js";
+import { syncBusinessTables, seedBusinessDemoData } from "./src/modules/admin/businessModel.js";
+import { syncPantryTable } from "./src/modules/meals/pantryModel.js";
+import { syncPremiumTables } from "./src/modules/plans/premiumModel.js";
+import { syncLoginTokenTable } from "./src/modules/auth/loginTokenModel.js";
+import { syncSignupVerificationTable } from "./src/modules/auth/signupVerificationModel.js";
+import { syncTrafficLogTable } from "./src/modules/analytics/trafficLogModel.js";
+import { syncAiRequestLogTable } from "./src/modules/ai/metadata/aiRequestLogModel.js";
+import { syncUserStreakTable } from "./src/modules/users/userStreakModel.js";
 
 const syncSteps = [
   { name: "users", fn: syncUserTable },
