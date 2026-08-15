@@ -7,7 +7,7 @@ import {
   samplePlanBody,
 } from "../helpers/testApp.js";
 
-vi.mock("../../src/services/authService.js", () => ({
+vi.mock("../../src/modules/auth/authService.js", () => ({
   signupService: vi.fn(async () => ({
     id: 42,
     user_type: "user",
