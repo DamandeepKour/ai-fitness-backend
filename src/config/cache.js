@@ -35,6 +35,7 @@ export const PLAN_PROFILE_FIELDS = [
   "age",
   "gender",
   "activity_level",
+  "region",
 ];
 
 export function stableHash(value) {

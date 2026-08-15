@@ -18,6 +18,8 @@ export const userColumns = {
   goal: "VARCHAR(50)",
   diet_type: "VARCHAR(50)",
   activity_level: "VARCHAR(50)",
+  region: "VARCHAR(50)",
+  meal_frequency: "INT",
   auth_provider: "VARCHAR(20) DEFAULT 'local'",
   google_id: "VARCHAR(255) NULL",
   profile_picture: "VARCHAR(500) NULL",

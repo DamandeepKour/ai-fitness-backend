@@ -6,7 +6,7 @@ import { invalidateCachesForProfileChange, PLAN_PROFILE_FIELDS } from "../../con
 
 const safeUserFields = `
   id, name, email, user_type, mobile_number, country_code, language, age, gender,
-  height, weight, goal, diet_type, activity_level, created_at, last_updated_at
+  height, weight, goal, diet_type, activity_level, region, meal_frequency, created_at, last_updated_at
 `;
 
 // ✅ Create User
@@ -14,9 +14,9 @@ export const createUserService = async (data) => {
   const conn = await db();
 
   const [result] = await conn.query(
-    `INSERT INTO users 
-    (name, email, password, mobile_number, country_code, age, gender, height, weight, goal, diet_type, activity_level)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO users
+    (name, email, password, mobile_number, country_code, age, gender, height, weight, goal, diet_type, activity_level, region, meal_frequency)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       data.name,
       data.email,
@@ -30,6 +30,8 @@ export const createUserService = async (data) => {
       data.goal,
       data.diet_type,
       data.activity_level,
+      data.region ?? null,
+      data.meal_frequency ?? null,
     ]
   );
 
@@ -46,7 +48,7 @@ export const updateUserService = async (userId, data) => {
   const allowedFields = [
     "name", "email", "password", "mobile_number", "country_code", "language",
     "age", "gender", "height",
-    "weight", "goal", "diet_type", "activity_level"
+    "weight", "goal", "diet_type", "activity_level", "region", "meal_frequency"
   ];
 
   const fields = [];

@@ -28,9 +28,11 @@ export const updateUserProfileSchema = Joi.object({
   weight: Joi.number().positive().max(500),
   goal: Joi.string()
     .trim()
-    .valid("fat_loss", "weight_loss", "maintenance", "muscle_gain", "lose", "gain"),
-  diet_type: Joi.string().trim().valid("veg", "veg_egg", "non veg", "non_veg"),
+    .valid("fat_loss", "weight_loss", "maintenance", "maintain", "muscle_gain", "body_recomp", "lose", "gain"),
+  diet_type: Joi.string().trim().valid("veg", "veg_egg", "non veg", "non_veg", "jain"),
   activity_level: Joi.string().trim().valid("low", "medium", "high", "sedentary", "moderate", "active"),
+  region: Joi.string().trim().valid("north_indian", "south_indian").allow("", null),
+  meal_frequency: Joi.number().integer().min(2).max(8),
 })
   .min(1)
   .messages({
@@ -54,4 +56,6 @@ export const createUserSchema = Joi.object({
   goal: Joi.string().trim().max(50),
   diet_type: Joi.string().trim().max(50),
   activity_level: Joi.string().trim().max(50),
+  region: Joi.string().trim().max(50),
+  meal_frequency: Joi.number().integer().min(2).max(8),
 });

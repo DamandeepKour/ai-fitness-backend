@@ -5,7 +5,8 @@ import { buildFeedbackPrompt } from "../prompts/templates.js";
 import { ACTIVE_PROMPT_VERSIONS } from "../prompts/versions.js";
 
 export async function generateFeedback(weightData = [], options = {}) {
-  const { messages } = buildFeedbackPrompt(weightData);
+  const plateau = options.plateau ?? {};
+  const { messages } = buildFeedbackPrompt(weightData, plateau);
   const promptVersion = ACTIVE_PROMPT_VERSIONS.feedback;
 
   const { data, meta } = await runAiTask({
@@ -17,6 +18,7 @@ export async function generateFeedback(weightData = [], options = {}) {
     fallback: () => FEEDBACK_FALLBACK,
     metadata: {
       weightEntries: Array.isArray(weightData) ? weightData.length : 0,
+      isPlateau: Boolean(plateau.isPlateau),
     },
   });
 

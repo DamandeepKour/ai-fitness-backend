@@ -17,6 +17,16 @@ import { AppError } from "../../utils/AppError.js";
 const createPlanService = async (userId, data) => {
   try {
     const planInput = { ...data };
+
+    // Default meal_preference (north/south Indian) from the user's saved
+    // region profile field when the caller doesn't specify one per-request.
+    if (!planInput.meal_preference) {
+      const existingUser = await getUserByIdService(userId);
+      if (existingUser?.region) {
+        planInput.meal_preference = existingUser.region;
+      }
+    }
+
     if (data.pantry_mode) {
       planInput.pantry_items = await getPantryIngredientList(userId);
     }

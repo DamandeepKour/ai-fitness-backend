@@ -29,6 +29,12 @@ Cheat meal: paratha (paneer/aloo/gobi) + butter`,
   south_indian: "Use South Indian meals: idli, dosa, appam, upma, sambar, coconut chutney.",
 };
 
+const GOAL_INSTRUCTIONS = {
+  body_recomp: "GOAL NOTE: Body recomposition — keep protein high (~1.8-2.2g/kg bodyweight), a modest calorie deficit (not aggressive), and prioritize strength training with cardio as a secondary support.",
+  maintain: "GOAL NOTE: Maintenance — hold calories at baseline, focus on consistency and balanced macros rather than a deficit or surplus.",
+  maintenance: "GOAL NOTE: Maintenance — hold calories at baseline, focus on consistency and balanced macros rather than a deficit or surplus.",
+};
+
 const BUDGET_MAP = {
   budget: "₹150/day — dal, roti, seasonal sabzi, eggs, local grains. No expensive imports.",
   standard: "₹250/day — paneer, chicken 2x/week, variety snacks.",
@@ -37,6 +43,9 @@ const BUDGET_MAP = {
 
 function buildDietInstruction(dietType) {
   const dietRules = parseDietType(dietType);
+  if (dietRules.isJain) {
+    return "Strict Jain vegetarian diet: no onion, garlic, potato, or other root/underground vegetables. No eggs.";
+  }
   if (dietRules.isVeg && !dietRules.isEgg) return "Strict vegetarian diet.";
   if (dietRules.isVeg && dietRules.isEgg) return "Vegetarian + eggs allowed.";
   if (dietRules.isNonVeg) return "Non-vegetarian diet allowed.";
@@ -63,6 +72,7 @@ Build a practical plan for the selected setting: home workout, gym, cardio, or y
 If injury notes are present, avoid risky moves and include safe substitutions. Add a short "injury_notes" coaching line for each day.
 Every workout day must include warmup, main exercise, yoga_balance or mobility work, duration, calories_burned, steps, intensity, and injury_notes.`;
 
+  const goalInstruction = GOAL_INSTRUCTIONS[data.goal] || "";
   const dietInstruction = buildDietInstruction(data.diet_type);
   const foodInstruction = FOOD_INSTRUCTIONS[data.meal_preference] || "";
   const cheatInstruction = data.include_cheat_meal
@@ -97,6 +107,7 @@ Goal: ${data.goal}
 Calories Target: ${calories}
 Steps Target: ${steps}
 
+${goalInstruction}
 ${dietInstruction}
 ${foodInstruction}
 ${workoutInstruction}
@@ -202,7 +213,12 @@ ${langInstruction}`,
   };
 }
 
-export function buildFeedbackPrompt(weightData = []) {
+export function buildFeedbackPrompt(weightData = [], plateau = {}) {
+  const plateauNote = plateau.isPlateau
+    ? `
+PLATEAU DETECTED: Weight has changed only ${plateau.changeKg}kg over the last ${plateau.weeks} weeks — this is a plateau, not just short-term fluctuation. Explicitly call this a plateau, explain likely causes (metabolic adaptation, hidden calorie creep, reduced daily activity), and how to break it (short diet break, recalculate calories for current weight, increase protein/steps, add resistance training).`
+    : "";
+
   return {
     messages: [
       { role: "system", content: "You are a fitness expert AI for FitNova." },
@@ -211,6 +227,7 @@ export function buildFeedbackPrompt(weightData = []) {
         content: `
 User weight trend:
 ${JSON.stringify(weightData)}
+${plateauNote}
 
 Tell why user is not losing weight and give practical suggestions.`,
       },

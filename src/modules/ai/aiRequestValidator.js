@@ -12,18 +12,18 @@ export const aiPlanRequestSchema = Joi.object({
   }),
   goal: Joi.string()
     .trim()
-    .valid("fat_loss", "weight_loss", "maintenance", "muscle_gain", "lose", "gain")
+    .valid("fat_loss", "weight_loss", "maintenance", "maintain", "muscle_gain", "body_recomp", "lose", "gain")
     .required()
     .messages({
       "any.required": "goal is required",
     }),
   diet_type: Joi.string()
     .trim()
-    .valid("veg", "veg_egg", "non veg", "non_veg")
+    .valid("veg", "veg_egg", "non veg", "non_veg", "jain")
     .required()
     .messages({
       "any.required": "diet_type is required",
-      "any.only": "diet_type must be veg, veg_egg, or non veg",
+      "any.only": "diet_type must be veg, veg_egg, non veg, or jain",
     }),
   plan_type: Joi.string().valid("daily", "weekly").default("weekly"),
   meal_preference: Joi.string().valid("north_indian", "south_indian").optional(),

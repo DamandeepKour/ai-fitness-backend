@@ -22,6 +22,9 @@ export const saveWeight = async (data) => {
 };
 
 //get weekly weight
+// NOTE: previously `ORDER BY log_date ASC LIMIT 7` with no date filter, which
+// returned the user's *earliest ever* 7 entries instead of the last 7 days —
+// fixed to actually return the recent trend (still ascending for display).
 export const getWeeklyWeight = async (userId) => {
   const conn = await db();
 
@@ -29,9 +32,25 @@ export const getWeeklyWeight = async (userId) => {
     SELECT log_date, weight
     FROM weight_logs
     WHERE user_id = ?
+      AND log_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
     ORDER BY log_date ASC
-    LIMIT 7
   `, [userId]);
+
+  return rows;
+};
+
+/** Weight entries over the last `days` (ascending) — used for plateau detection. */
+export const getWeightHistoryForDays = async (userId, days = 35) => {
+  const conn = await db();
+
+  const [rows] = await conn.query(
+    `SELECT log_date, weight
+     FROM weight_logs
+     WHERE user_id = ?
+       AND log_date >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+     ORDER BY log_date ASC`,
+    [userId, days],
+  );
 
   return rows;
 };
