@@ -57,3 +57,12 @@ Suggestions:
 3. Walk 8,000–10,000 steps daily.
 4. Weigh yourself at the same time each morning.
 5. Review evening snack portions — they often stall fat loss.`;
+
+export const PLAN_EXPLANATION_FALLBACK =
+  "This plan sets a daily calorie target based on your weight and goal, builds meals around your diet type, " +
+  "and pairs them with a workout focus suited to your goal. Stick with it for a week and adjust portions if you " +
+  "feel too hungry or too full.";
+
+export const MEAL_EXPLANATION_FALLBACK =
+  "This meal contributes to your daily calorie and protein targets for this slot. If it feels too heavy or too " +
+  "light for your goal, adjust the portion size rather than skipping the meal.";
