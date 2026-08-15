@@ -217,3 +217,54 @@ Tell why user is not losing weight and give practical suggestions.`,
     ],
   };
 }
+
+/** Explains why the user's current diet + workout plan looks the way it does. */
+export function buildPlanExplanationPrompt(plan = {}, context = {}) {
+  return {
+    messages: [
+      {
+        role: "system",
+        content: "You are FitNova — an Indian fitness coach explaining plan decisions in plain, encouraging language.",
+      },
+      {
+        role: "user",
+        content: `
+User goal: ${context.goal || "general fitness"}
+Diet type: ${context.diet_type || "balanced"}
+Daily calorie target: ${plan.calories || "not set"}
+
+Diet plan (JSON):
+${JSON.stringify(plan.diet_plan ?? [])}
+
+Workout plan (JSON):
+${JSON.stringify(plan.workout_plan ?? [])}
+
+Explain in 3-5 short sentences why this plan was built this way for this user: the calorie target, the food choices, and the workout focus. Be specific to the goal and diet type. No JSON, no markdown — plain text only.`,
+      },
+    ],
+  };
+}
+
+/** Explains why a specific logged meal fits (or doesn't fit) the user's plan. */
+export function buildMealExplanationPrompt(meal = {}, context = {}) {
+  return {
+    messages: [
+      {
+        role: "system",
+        content: "You are FitNova — an Indian fitness coach explaining meal choices in plain, encouraging language.",
+      },
+      {
+        role: "user",
+        content: `
+User goal: ${context.goal || "general fitness"}
+Daily calorie target: ${context.targetCalories || "not set"}
+
+Meal slot: ${meal.meal_type}
+Food logged: ${meal.food_name}
+Calories: ${meal.calories}, Protein: ${meal.protein}g, Carbs: ${meal.carbs}g, Fat: ${meal.fat}g
+
+Explain in 2-4 short sentences why this meal fits (or doesn't fit) the user's goal and daily calorie target, and give one practical tip for this meal slot going forward. No JSON, no markdown — plain text only.`,
+      },
+    ],
+  };
+}

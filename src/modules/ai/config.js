@@ -11,6 +11,8 @@ export const AI_FEATURES = {
   PLAN: "plan",
   COACHING: "coaching",
   FEEDBACK: "feedback",
+  EXPLAIN_PLAN: "explain_plan",
+  EXPLAIN_MEAL: "explain_meal",
 };
 
 export const AI_STATUS = {
