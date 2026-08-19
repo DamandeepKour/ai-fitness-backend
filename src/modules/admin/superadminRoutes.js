@@ -3,6 +3,7 @@ import authMiddleware from "../auth/authMiddleware.js";
 import { requirePermission, requireRole, requireSelfOrRole } from "../auth/requireRole.js";
 import { ROLES, PERMISSIONS } from "../auth/roles.js";
 import {
+  getAdminDigest,
   getAIAnalytics,
   getAIQualityAnalytics,
   getAIGeneratedMeals,
@@ -58,6 +59,7 @@ router.get("/funnel/analytics", analytics, getFunnelAnalytics);
 router.get("/retention/analytics", analytics, getRetentionAnalytics);
 router.get("/cohort/analytics", analytics, getCohortAnalytics);
 router.get("/ai/quality", analytics, getAIQualityAnalytics);
+router.get("/digest", analytics, getAdminDigest);
 
 router.get("/support/tickets", systemRead, getSupportTickets);
 router.patch("/support/tickets/:id", systemRead, updateSupportTicketStatus);
