@@ -99,7 +99,7 @@ export async function getHealthAnalyticsService() {
     `SELECT id, name, weight, goal
      FROM users
      WHERE (user_type = 'user' OR user_type IS NULL)
-       AND goal IN ('fat_loss', 'weight_loss')
+       AND goal IN ('fat_loss', 'weight_loss', 'lose')
        AND last_updated_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)`,
   );
 

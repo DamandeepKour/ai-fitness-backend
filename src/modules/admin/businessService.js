@@ -117,13 +117,18 @@ export async function getBusinessAnalyticsService() {
       COALESCE(SUM(CASE WHEN status = 'refunded' AND cancelled_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN package_price ELSE 0 END), 0) AS refunds,
       COUNT(DISTINCT CASE WHEN status = 'active' THEN user_id END) AS activePaidUsers
      FROM ${subscriptionsTable}
-     WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) OR status = 'active'`,
+     WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+        OR status = 'active'
+        OR (status = 'refunded' AND cancelled_at >= DATE_SUB(NOW(), INTERVAL 30 DAY))`,
   );
 
   const mrr = Number(revenueRow.mrr || 0);
   const activePaidUsers = Number(revenueRow.activePaidUsers || 0);
   const arpu = activePaidUsers ? mrr / activePaidUsers : 0;
-  const ltv = arpu * 7.8;
+  // TODO: replace with a real cohort-derived average customer lifetime once
+  // enough subscription-lifetime data exists — this is an assumed placeholder.
+  const ASSUMED_AVG_LIFETIME_MONTHS = 7.8;
+  const ltv = arpu * ASSUMED_AVG_LIFETIME_MONTHS;
 
   return {
     signups,

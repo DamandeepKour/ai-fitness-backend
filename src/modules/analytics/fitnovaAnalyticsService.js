@@ -554,17 +554,24 @@ async function getMysqlOverview(from, to, days) {
     [fromSql, toSql],
   );
 
+  // completedUserDays must be a subset of activeUserDays (mirrors the Mongo
+  // aggregation in aggregateMealCompletion), so both are derived from the
+  // same active-day rows instead of two independent counts — previously this
+  // compared unrelated sets (daily_logs vs api_request_logs) and could yield
+  // a "rate" over 100%.
   const [[mealStats]] = await conn.query(
     `SELECT
-       (SELECT COUNT(*) FROM (
-          SELECT DISTINCT user_id, log_date FROM daily_logs
-          WHERE log_date BETWEEN DATE(?) AND DATE(?)
-        ) meal_days) AS completedUserDays,
-       (SELECT COUNT(*) FROM (
-          SELECT DISTINCT user_id, DATE(created_at) AS d FROM api_request_logs
-          WHERE created_at BETWEEN ? AND ? AND user_id IS NOT NULL
-        ) active_days) AS activeUserDays`,
-    [fromSql, toSql, fromSql, toSql],
+       COUNT(*) AS activeUserDays,
+       SUM(CASE WHEN EXISTS (
+         SELECT 1 FROM daily_logs dl
+         WHERE dl.user_id = a.user_id AND dl.log_date = a.d
+       ) THEN 1 ELSE 0 END) AS completedUserDays
+     FROM (
+       SELECT DISTINCT user_id, DATE(created_at) AS d
+       FROM api_request_logs
+       WHERE created_at BETWEEN ? AND ? AND user_id IS NOT NULL
+     ) a`,
+    [fromSql, toSql],
   );
 
   const [goalRows] = await conn.query(
