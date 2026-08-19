@@ -3,6 +3,17 @@ import { logger } from "../config/logger.js";
 import { createBullConnection, isQueueEnabled } from "./connection.js";
 import { QUEUE_NAME } from "./constants.js";
 import { PROCESSOR_MAP } from "./processors/index.js";
+import { upsertJobStatus } from "./jobStatusModel.js";
+
+function recordJobStatus(entry) {
+  // Best-effort durable record — must never throw inside a worker event handler.
+  void upsertJobStatus(entry).catch((err) => {
+    logger.error(
+      { type: "jobs", jobId: entry.jobId, status: entry.status, err: err.message },
+      "Job status DB write failed",
+    );
+  });
+}
 
 let worker = null;
 export function startFitnovaWorker() {

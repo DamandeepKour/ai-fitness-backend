@@ -6,6 +6,8 @@ import {
   JOB_NAMES,
   QUEUE_NAME,
 } from "./constants.js";
+import { upsertJobStatus } from "./jobStatusModel.js";
+import { logger } from "../config/logger.js";
 
 let fitnovaQueue = null;
 
@@ -74,8 +76,9 @@ export async function enqueueDispatchJob(jobName, payload = {}, options = {}) {
 
 async function addJobSafe(name, payload, options) {
   const queue = getFitnovaQueue();
+  let job;
   try {
-    return await queue.add(name, payload, options);
+    job = await queue.add(name, payload, options);
   } catch (err) {
     // Idempotent jobId collisions are expected on re-dispatch.
     if (options.jobId && /already exists|Job.*?exist/i.test(String(err.message || ""))) {
@@ -84,4 +87,18 @@ async function addJobSafe(name, payload, options) {
     }
     throw err;
   }
+
+  // Best-effort durable record — must never block/fail job dispatch.
+  void upsertJobStatus({
+    jobId: String(job.id),
+    jobName: name,
+    queueName: QUEUE_NAME,
+    status: "queued",
+    attemptsMade: 0,
+    attemptsMax: options.attempts ?? null,
+  }).catch((err) => {
+    logger.error({ type: "jobs", jobId: job.id, err: err.message }, "Job status DB write failed (queued)");
+  });
+
+  return job;
 }
