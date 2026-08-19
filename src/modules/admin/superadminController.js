@@ -98,6 +98,20 @@ export async function getSuperadminAnalytics(req, res, next) {
 export async function getSuperadminUsers(req, res, next) {
   try {
     const users = await getSuperadminUsersService();
+
+    if (req.query.format === "csv") {
+      return sendCsv(res, "users.csv", users, [
+        { key: "id", label: "ID" },
+        { key: "name", label: "Name" },
+        { key: "email", label: "Email" },
+        { key: "user_type", label: "Type" },
+        { key: "created_at", label: "Signed Up" },
+        { key: "last_updated_at", label: "Last Updated" },
+        { key: "last_login", label: "Last Login" },
+        { key: "is_active", label: "Active (30d)" },
+      ]);
+    }
+
     res.json({ success: true, data: { users } });
   } catch (err) {
     next(err);
@@ -201,6 +215,15 @@ export async function getHealthAnalytics(req, res, next) {
 export async function getNutritionAnalytics(req, res, next) {
   try {
     const data = await getNutritionAnalyticsService();
+
+    if (req.query.format === "csv") {
+      return sendCsv(res, "top-foods.csv", data.topFoods, [
+        { key: "name", label: "Food" },
+        { key: "logs", label: "Log Count" },
+        { key: "kcal", label: "Avg Calories" },
+      ]);
+    }
+
     res.json({ success: true, data });
   } catch (err) {
     next(err);
@@ -238,6 +261,29 @@ export async function getAIQualityAnalytics(req, res, next) {
   try {
     const data = await getAIQualityAnalyticsService();
     res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/** Daily/weekly admin digest — signups, active users, plans, meal logging, AI usage, retention. */
+export async function getAdminDigest(req, res, next) {
+  try {
+    const period = req.query.period === "weekly" ? "weekly" : "daily";
+    const digest = await getAdminDigestService(period);
+
+    if (req.query.format === "csv") {
+      return sendCsv(res, `admin-digest-${period}.csv`, [digest.summary]);
+    }
+
+    if (req.query.format === "pdf") {
+      const pdfBuffer = await renderDigestPdf(digest);
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="admin-digest-${period}.pdf"`);
+      return res.status(200).send(pdfBuffer);
+    }
+
+    res.json({ success: true, data: digest });
   } catch (err) {
     next(err);
   }
