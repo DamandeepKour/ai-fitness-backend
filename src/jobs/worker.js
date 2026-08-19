@@ -44,6 +44,15 @@ export function startFitnovaWorker() {
         `Processing job ${job.name}`,
       );
 
+      recordJobStatus({
+        jobId: String(job.id),
+        jobName: job.name,
+        queueName: QUEUE_NAME,
+        status: "active",
+        attemptsMade: job.attemptsMade + 1,
+        attemptsMax: job.opts?.attempts ?? null,
+      });
+
       return processor(job);
     },
     {
@@ -63,6 +72,16 @@ export function startFitnovaWorker() {
       },
       `Job ${job.id} completed`,
     );
+
+    recordJobStatus({
+      jobId: String(job.id),
+      jobName: job.name,
+      queueName: QUEUE_NAME,
+      status: "completed",
+      attemptsMade: job.attemptsMade,
+      attemptsMax: job.opts?.attempts ?? null,
+      resultSummary: result ?? null,
+    });
   });
 
   worker.on("failed", (job, err) => {
@@ -77,6 +96,19 @@ export function startFitnovaWorker() {
       },
       `Job ${job?.id} failed`,
     );
+
+    if (job) {
+      const exhausted = (job.attemptsMade ?? 0) >= (job.opts?.attempts ?? 1);
+      recordJobStatus({
+        jobId: String(job.id),
+        jobName: job.name,
+        queueName: QUEUE_NAME,
+        status: exhausted ? "failed" : "retrying",
+        attemptsMade: job.attemptsMade,
+        attemptsMax: job.opts?.attempts ?? null,
+        errorMessage: err.message,
+      });
+    }
   });
 
   worker.on("error", (err) => {
