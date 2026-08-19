@@ -1,5 +1,6 @@
 import { getFitnovaQueue, enqueueDispatchJob, enqueueAiPlanJob } from "../jobs/queues.js";
 import { formatJobStatus, listRecentJobs } from "../jobs/jobStatus.js";
+import { getJobStatusByJobId } from "../jobs/jobStatusModel.js";
 import { JOB_NAMES } from "../jobs/constants.js";
 import { isQueueEnabled } from "../jobs/connection.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
@@ -12,12 +13,42 @@ function assertQueue() {
   }
 }
 
+function fromDbRow(row) {
+  return {
+    id: row.job_id,
+    name: row.job_name,
+    queue: row.queue_name,
+    state: row.status,
+    progress: null,
+    attemptsMade: row.attempts_made,
+    attemptsMax: row.attempts_max,
+    retriesRemaining:
+      row.attempts_max != null ? Math.max(0, row.attempts_max - row.attempts_made) : null,
+    failedReason: row.error_message,
+    data: null,
+    result: row.result_summary
+      ? (typeof row.result_summary === "string" ? JSON.parse(row.result_summary) : row.result_summary)
+      : null,
+    delay: 0,
+    timestamp: null,
+    processedOn: null,
+    finishedOn: null,
+    source: "db", // this job has rotated out of Redis; served from durable history
+  };
+}
+
 export const getJobStatus = asyncHandler(async (req, res) => {
   assertQueue();
   const job = await getFitnovaQueue().getJob(req.params.id);
 
   if (!job) {
-    throw new AppError("Job not found", 404, null, "JOB_NOT_FOUND");
+    // BullMQ rotates completed/failed jobs out of Redis (see removeOnComplete/
+    // removeOnFail in constants.js) — fall back to the durable DB record.
+    const dbRow = await getJobStatusByJobId(req.params.id);
+    if (!dbRow) {
+      throw new AppError("Job not found", 404, null, "JOB_NOT_FOUND");
+    }
+    return res.json({ success: true, data: fromDbRow(dbRow) });
   }
 
   const status = await formatJobStatus(job);

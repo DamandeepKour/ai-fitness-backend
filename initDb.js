@@ -14,6 +14,7 @@ import { syncSignupVerificationTable } from "./src/modules/auth/signupVerificati
 import { syncTrafficLogTable } from "./src/modules/analytics/trafficLogModel.js";
 import { syncAiRequestLogTable } from "./src/modules/ai/metadata/aiRequestLogModel.js";
 import { syncUserStreakTable } from "./src/modules/users/userStreakModel.js";
+import { syncJobStatusTable } from "./src/jobs/jobStatusModel.js";
 
 const syncSteps = [
   { name: "users", fn: syncUserTable },
@@ -31,6 +32,7 @@ const syncSteps = [
   { name: "api_request_logs", fn: syncTrafficLogTable },
   { name: "ai_request_logs", fn: syncAiRequestLogTable },
   { name: "user_streaks", fn: syncUserStreakTable },
+  { name: "job_status", fn: syncJobStatusTable },
 ];
 
 export default async function initDb() {
