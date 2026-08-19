@@ -16,6 +16,7 @@ function recordJobStatus(entry) {
 }
 
 let worker = null;
+
 export function startFitnovaWorker() {
   if (!isQueueEnabled()) {
     logger.warn({ type: "jobs" }, "REDIS_URL not set — FitNova job worker not started");
