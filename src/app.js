@@ -1,4 +1,5 @@
 import express from "express";
+import compression from "compression";
 import routes from "./routes/index.js";
 import notFound from "./middleware/notFound.js";
 import errorHandler from "./middleware/errorHandler.js";
@@ -26,6 +27,7 @@ export function createApp({
   app.set("trust proxy", 1);
 
   applySecurityMiddleware(app);
+  app.use(compression());
   app.use(express.json({ limit: process.env.BODY_SIZE_LIMIT || "1mb" }));
   app.use(requestContextMiddleware);
 
