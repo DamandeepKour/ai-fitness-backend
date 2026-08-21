@@ -162,27 +162,30 @@ export async function getCohortAnalyticsService() {
      LIMIT 8`,
   );
 
-  const cohorts = [];
+  // Single grouped query for all cohorts' retention counts instead of one
+  // query per cohort row (was an N+1 — up to 8 extra round trips).
+  const [retentionRows] = await conn.query(
+    `SELECT
+      DATE(DATE_SUB(created_at, INTERVAL WEEKDAY(created_at) DAY)) AS cohortStart,
+      SUM(CASE WHEN last_updated_at >= DATE_ADD(created_at, INTERVAL 6 DAY) THEN 1 ELSE 0 END) AS day7,
+      SUM(CASE WHEN last_updated_at >= DATE_ADD(created_at, INTERVAL 13 DAY) THEN 1 ELSE 0 END) AS day14,
+      SUM(CASE WHEN last_updated_at >= DATE_ADD(created_at, INTERVAL 29 DAY) THEN 1 ELSE 0 END) AS day30
+     FROM users
+     WHERE ${USER_FILTER}
+       AND created_at >= DATE_SUB(NOW(), INTERVAL 56 DAY)
+     GROUP BY cohortStart`,
+  );
+  const retentionByCohort = new Map(retentionRows.map((row) => [String(row.cohortStart), row]));
 
-  for (const row of cohortRows) {
+  const cohorts = cohortRows.map((row) => {
     const cohortStart = row.cohortStart;
     const cohortSize = Number(row.cohortSize || 0);
-
-    const [[retention]] = await conn.query(
-      `SELECT
-        SUM(CASE WHEN last_updated_at >= DATE_ADD(created_at, INTERVAL 6 DAY) THEN 1 ELSE 0 END) AS day7,
-        SUM(CASE WHEN last_updated_at >= DATE_ADD(created_at, INTERVAL 13 DAY) THEN 1 ELSE 0 END) AS day14,
-        SUM(CASE WHEN last_updated_at >= DATE_ADD(created_at, INTERVAL 29 DAY) THEN 1 ELSE 0 END) AS day30
-       FROM users
-       WHERE ${USER_FILTER}
-         AND DATE(DATE_SUB(created_at, INTERVAL WEEKDAY(created_at) DAY)) = ?`,
-      [cohortStart],
-    );
+    const retention = retentionByCohort.get(String(cohortStart)) || {};
 
     const startDate = new Date(cohortStart);
     const label = startDate.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
-    cohorts.push({
+    return {
       key: row.cohortKey,
       label: `Week of ${label}`,
       cohortStart,
@@ -193,8 +196,8 @@ export async function getCohortAnalyticsService() {
       retainedDay7: Number(retention.day7 || 0),
       retainedDay14: Number(retention.day14 || 0),
       retainedDay30: Number(retention.day30 || 0),
-    });
-  }
+    };
+  });
 
   const periods = ["day7", "day14", "day30"];
   const averages = Object.fromEntries(
