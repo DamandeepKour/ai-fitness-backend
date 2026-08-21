@@ -2,6 +2,7 @@ import { saveDailyLog, getDailyLogs } from "./dailyLogRepo.js";
 import { getUserPlan } from "../plans/planRepo.js";
 import { generateMealExplanation } from "../ai/features/explainMealGenerator.js";
 import { AppError } from "../../utils/AppError.js";
+import { invalidateUserDashboardCache } from "../../config/cache.js";
 
 const DAILY_LOG_MEAL_TYPES = new Set([
   "morning_drink",
@@ -43,6 +44,8 @@ export const normalizeMealType = (mealType = "") => {
 export const addDailyLogService = async (data) => {
   const meal_type = normalizeMealType(data.meal_type);
   const result = await saveDailyLog({ ...data, meal_type });
+
+  void invalidateUserDashboardCache(data.user_id).catch(() => {});
 
   return {
     ...result,

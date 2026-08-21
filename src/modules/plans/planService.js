@@ -10,6 +10,7 @@ import {
   cacheSet,
   planCacheKey,
   trackPlanCacheKey,
+  invalidateUserDashboardCache,
 } from "../../config/cache.js";
 import { logger } from "../../config/logger.js";
 import { AppError } from "../../utils/AppError.js";
@@ -56,6 +57,7 @@ const createPlanService = async (userId, data) => {
     const { aiMeta, ...aiData } = aiResult;
 
     await savePlan(userId, aiData);
+    void invalidateUserDashboardCache(userId).catch(() => {});
 
     const ttl = CACHE_TTL.plan;
     await cacheSet(cacheKey, aiData, ttl);

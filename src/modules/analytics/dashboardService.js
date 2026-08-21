@@ -5,6 +5,7 @@ import { getUserPlan } from "../plans/planRepo.js";
 import { getLatestWeight, getRecentWeights } from "../plans/weightRepo.js";
 import { getUserByIdService } from "../users/userService.js";
 import { isValidYmd, serverCalendarYmd } from "../../utils/localDate.js";
+import { CACHE_TTL, cacheGet, cacheSet, dashboardCacheKey } from "../../config/cache.js";
 
 const toNumber = (value) => Number(value || 0);
 
@@ -117,6 +118,11 @@ const flattenDietPlan = (dietPlan) => {
 const getDashboardService = async (userId, logDateYmd) => {
   try {
     const logDate = isValidYmd(logDateYmd) ? logDateYmd : serverCalendarYmd();
+    const cacheKey = dashboardCacheKey(userId, logDate);
+
+    const cached = await cacheGet(cacheKey);
+    if (cached) return cached;
+
     const logs = await getDailyLogs(userId, logDate);
     const last7DaysLogs = await getDailyLogsForLastDays(userId, logDate, 7);
     const plan = await getUserPlan(userId);
@@ -136,7 +142,7 @@ const getDashboardService = async (userId, logDateYmd) => {
     const fatTarget = Math.round((targetCalories * 0.25) / 9);
     const dietPlan = parseJson(plan?.diet_plan, []);
 
-    return {
+    const dashboard = {
       user: {
         id: user?.id,
         name: user?.name,
@@ -182,6 +188,9 @@ const getDashboardService = async (userId, logDateYmd) => {
       graph: buildLast7DaysCalories(last7DaysLogs, logDate),
       meals: logs,
     };
+
+    await cacheSet(cacheKey, dashboard, CACHE_TTL.dashboard);
+    return dashboard;
   } catch (err) {
     throw err;
   }

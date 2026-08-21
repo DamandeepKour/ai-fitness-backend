@@ -1,6 +1,7 @@
 import { saveWeight, getWeeklyWeight, getLatestWeight, getWeightHistoryForDays } from "./weightRepo.js";
 import { getDailyLogs } from "../meals/dailyLogRepo.js";
 import { serverCalendarYmd } from "../../utils/localDate.js";
+import { invalidateUserDashboardCache } from "../../config/cache.js";
 
 const PLATEAU_WINDOW_DAYS = 35;
 const PLATEAU_MIN_WEEKS = 4;
@@ -41,6 +42,7 @@ export const addWeightService = async (data) => {
 
     if (latest && latest.date === today) {
       await saveWeight({ ...data, date: today });
+      void invalidateUserDashboardCache(data.user_id).catch(() => {});
 
       return {
         message: "Weight updated for today",
@@ -50,6 +52,7 @@ export const addWeightService = async (data) => {
     }
 
     await saveWeight({ ...data, date: today });
+    void invalidateUserDashboardCache(data.user_id).catch(() => {});
 
     return {
       message: "Weight added successfully",

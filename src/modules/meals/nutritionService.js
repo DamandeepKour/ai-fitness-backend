@@ -1,4 +1,5 @@
 import db from "../../config/db.js";
+import { CACHE_PREFIX, CACHE_TTL, cacheGet, cacheSet } from "../../config/cache.js";
 
 const MEAL_TYPE_LABELS = {
   breakfast: "Breakfast",
@@ -18,6 +19,12 @@ function pct(numerator, denominator) {
 }
 
 export async function getNutritionAnalyticsService() {
+  const cacheKey = CACHE_PREFIX.analyticsNutrition;
+  const cached = await cacheGet(cacheKey);
+  if (cached) {
+    return { ...cached, cached: true };
+  }
+
   const conn = await db();
 
   const [mealRows] = await conn.query(
@@ -109,7 +116,7 @@ export async function getNutritionAnalyticsService() {
     ? Math.round(weeklyAdherence.reduce((acc, row) => acc + row.score, 0) / weeklyAdherence.length)
     : 0;
 
-  return {
+  const data = {
     mealTypes,
     mealTotal,
     skippedMeals,
@@ -122,4 +129,7 @@ export async function getNutritionAnalyticsService() {
     targetKcal,
     diff: avgKcal - targetKcal,
   };
+
+  await cacheSet(cacheKey, data, CACHE_TTL.analyticsNutrition);
+  return { ...data, cached: false };
 }

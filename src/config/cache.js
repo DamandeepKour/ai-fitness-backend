@@ -15,6 +15,8 @@ export const CACHE_TTL = {
   analyticsAiUsage: envInt("ANALYTICS_AI_USAGE_TTL_SEC", 120),
   analyticsSuperadmin: envInt("ANALYTICS_SUPERADMIN_TTL_SEC", 60),
   analyticsAiPlans: envInt("ANALYTICS_AI_PLANS_TTL_SEC", 60),
+  dashboard: envInt("DASHBOARD_CACHE_TTL_SEC", 120),
+  analyticsNutrition: envInt("ANALYTICS_NUTRITION_TTL_SEC", 120),
 };
 
 export const CACHE_PREFIX = {
@@ -24,6 +26,8 @@ export const CACHE_PREFIX = {
   analyticsAiUsage: "fitnova:analytics:ai-usage:v1",
   analyticsSuperadmin: "fitnova:analytics:superadmin:v1",
   analyticsAiPlans: "fitnova:analytics:ai-plans:v1",
+  dashboard: "fitnova:dashboard:v1",
+  analyticsNutrition: "fitnova:analytics:nutrition:v1",
 };
 
 /** Fields that affect AI plan outputs / cache validity. */
@@ -91,6 +95,11 @@ export function analyticsOverviewCacheKey(range) {
 
 export function analyticsAiUsageCacheKey(range) {
   return `${CACHE_PREFIX.analyticsAiUsage}:${stableHash(range)}`;
+}
+
+/** Per-user, per-day — dashboard content is date-scoped ("today"/"yesterday"). */
+export function dashboardCacheKey(userId, logDate) {
+  return `${CACHE_PREFIX.dashboard}:${userId}:${logDate}`;
 }
 
 export async function cacheGet(key) {
@@ -171,6 +180,23 @@ export async function invalidateUserPlanCache(userId) {
     return { deleted: keys.length };
   } catch (err) {
     logger.warn({ type: "cache", userId, err: err.message }, "plan cache invalidation failed");
+    return { deleted: 0 };
+  }
+}
+
+/** Invalidate a user's cached dashboard for every date (log edits can touch any day). */
+export async function invalidateUserDashboardCache(userId) {
+  const redis = getRedis();
+  if (!redis || userId == null) return { deleted: 0 };
+
+  try {
+    const deleted = await deleteByPattern(redis, `${CACHE_PREFIX.dashboard}:${userId}:*`);
+    if (deleted > 0) {
+      logger.info({ type: "cache", userId, deleted }, "Invalidated user dashboard cache");
+    }
+    return { deleted };
+  } catch (err) {
+    logger.warn({ type: "cache", userId, err: err.message }, "dashboard cache invalidation failed");
     return { deleted: 0 };
   }
 }
