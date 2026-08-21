@@ -90,34 +90,41 @@ export async function getRetentionAnalyticsService() {
   const conn = await db();
 
   const retentionDays = [1, 3, 7, 14, 30];
-  const curve = [];
 
-  for (const day of retentionDays) {
-    const [[row]] = await conn.query(
-      `SELECT
-        COUNT(*) AS cohortSize,
-        SUM(
-          CASE
-            WHEN last_updated_at IS NOT NULL
-             AND last_updated_at >= DATE_ADD(created_at, INTERVAL ? DAY)
-            THEN 1 ELSE 0
-          END
-        ) AS retained
-       FROM users
-       WHERE ${USER_FILTER}
-         AND created_at <= DATE_SUB(NOW(), INTERVAL ? DAY)
-         AND created_at >= DATE_SUB(NOW(), INTERVAL 90 DAY)`,
-      [Math.max(day - 1, 0), day],
-    );
+  // Single query with one conditional-aggregate pair per day-bucket, instead
+  // of a separate round trip per day (was an N+1 — 5 sequential queries
+  // against the same `users` table).
+  const params = [];
+  const selectParts = retentionDays.map((day, i) => {
+    const retainedInterval = Math.max(day - 1, 0);
+    params.push(day, day, retainedInterval);
+    return `
+      SUM(CASE WHEN created_at <= DATE_SUB(NOW(), INTERVAL ? DAY) THEN 1 ELSE 0 END) AS cohort_${i},
+      SUM(CASE WHEN created_at <= DATE_SUB(NOW(), INTERVAL ? DAY)
+            AND last_updated_at IS NOT NULL
+            AND last_updated_at >= DATE_ADD(created_at, INTERVAL ? DAY)
+          THEN 1 ELSE 0 END) AS retained_${i}`;
+  }).join(",\n");
 
-    curve.push({
+  const [[row]] = await conn.query(
+    `SELECT ${selectParts}
+     FROM users
+     WHERE ${USER_FILTER}
+       AND created_at >= DATE_SUB(NOW(), INTERVAL 90 DAY)`,
+    params,
+  );
+
+  const curve = retentionDays.map((day, i) => {
+    const cohortSize = Number(row[`cohort_${i}`] || 0);
+    const retained = Number(row[`retained_${i}`] || 0);
+    return {
       day,
       label: `Day ${day}`,
-      cohortSize: Number(row.cohortSize || 0),
-      retained: Number(row.retained || 0),
-      rate: pct(Number(row.retained || 0), Number(row.cohortSize || 0)),
-    });
-  }
+      cohortSize,
+      retained,
+      rate: pct(retained, cohortSize),
+    };
+  });
 
   const [[summary7]] = await conn.query(
     `SELECT COUNT(*) AS cohortSize,
